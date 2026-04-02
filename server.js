@@ -44,8 +44,12 @@ app.get('/user-signup', (req, res) => res.sendFile(path.join(__dirname, 'public'
 async function seedAdmin() {
   const bcrypt = require('bcryptjs');
   try {
-    const adminUser = process.env.SEED_ADMIN_USERNAME || 'admin';
-    const adminPass = process.env.SEED_ADMIN_PASSWORD || 'ViratAbd$&1718';
+    const adminUser = process.env.SEED_ADMIN_USERNAME;
+    const adminPass = process.env.SEED_ADMIN_PASSWORD;
+    if (!adminUser || !adminPass) {
+      console.warn('⚠️ Admin seeding skipped: SEED_ADMIN_USERNAME or SEED_ADMIN_PASSWORD not set.');
+      return;
+    }
     const doc = await db.findOne('users', { role: 'admin' });
     if (!doc) {
       const hash = await bcrypt.hash(adminPass, 10);

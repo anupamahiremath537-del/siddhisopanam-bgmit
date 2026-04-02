@@ -4,8 +4,12 @@ const jwt = require('jsonwebtoken');
 const db = require('../utils/database');
 const emailUtil = require('../utils/email');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'eventvault_secret_2024';
-const ORGANIZER_SECRET_CODE = process.env.ORGANIZER_SECRET_CODE || 'AURACSE2026';
+const JWT_SECRET = process.env.JWT_SECRET;
+const ORGANIZER_SECRET_CODE = process.env.ORGANIZER_SECRET_CODE;
+
+if (!JWT_SECRET || !ORGANIZER_SECRET_CODE) {
+  console.error('❌ CRITICAL: JWT_SECRET or ORGANIZER_SECRET_CODE environment variables are not set!');
+}
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'bgmitcs034@gmail.com';
 
 const otpUtil = require('../utils/otp');
