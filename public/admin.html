@@ -1284,6 +1284,9 @@ async function doSignupOTP() {
   if (!isResend) btnText.innerHTML = '<span class="spinner"></span> Sending...';
   
   try {
+    // Verify secret code first
+    await post('/auth/verify-secret', { secretCode: code });
+    
     await post('/auth/send-otp', { email });
     document.getElementById('signup-form-fields').style.display = 'none';
     document.getElementById('verify-section').style.display = 'block';

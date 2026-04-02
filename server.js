@@ -44,11 +44,13 @@ app.get('/user-signup', (req, res) => res.sendFile(path.join(__dirname, 'public'
 async function seedAdmin() {
   const bcrypt = require('bcryptjs');
   try {
+    const adminUser = process.env.SEED_ADMIN_USERNAME || 'admin';
+    const adminPass = process.env.SEED_ADMIN_PASSWORD || 'ViratAbd$&1718';
     const doc = await db.findOne('users', { role: 'admin' });
     if (!doc) {
-      const hash = await bcrypt.hash('EventVault2024!', 10);
-      await db.insert('users', { username: 'admin', password: hash, role: 'admin', name: 'Event Organizer', email: 'admin@events.com', createdAt: new Date() });
-      console.log('✅ Admin seeded: username=admin, password=EventVault2024!');
+      const hash = await bcrypt.hash(adminPass, 10);
+      await db.insert('users', { username: adminUser, password: hash, role: 'admin', name: 'Event Organizer', email: 'admin@events.com', createdAt: new Date() });
+      console.log(`✅ Admin seeded: username=${adminUser}, password=${adminPass}`);
     }
   } catch (err) {
     console.error('❌ Error seeding admin:', err.message);
@@ -91,7 +93,7 @@ async function sendDailyCSVReport() {
       const filename = `eventvault-report-${new Date().toISOString().split('T')[0]}.csv`;
 
       await emailUtil.sendEmail(
-        'bgmitcs034@gmail.com', 
+        process.env.ADMIN_EMAIL || 'bgmitcs034@gmail.com', 
         subject, 
         text, 
         null, 

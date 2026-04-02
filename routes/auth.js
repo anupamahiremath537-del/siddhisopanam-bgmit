@@ -5,10 +5,20 @@ const db = require('../utils/database');
 const emailUtil = require('../utils/email');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'eventvault_secret_2024';
-const ORGANIZER_SECRET_CODE = process.env.ORGANIZER_SECRET_CODE || 'ORG2024';
-const ADMIN_EMAIL = 'bgmitcs034@gmail.com';
+const ORGANIZER_SECRET_CODE = process.env.ORGANIZER_SECRET_CODE || 'AURACSE2026';
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'bgmitcs034@gmail.com';
 
 const otpUtil = require('../utils/otp');
+
+// POST /api/auth/verify-secret
+router.post('/verify-secret', async (req, res) => {
+  const { secretCode } = req.body;
+  if (!secretCode) return res.status(400).json({ error: 'Secret code is required' });
+  if (secretCode !== ORGANIZER_SECRET_CODE) {
+    return res.status(400).json({ error: 'Invalid secret code' });
+  }
+  res.json({ success: true });
+});
 
 // POST /api/auth/send-otp
 router.post('/send-otp', async (req, res) => {
@@ -150,8 +160,8 @@ router.post('/login', async (req, res) => {
     ).catch(err => console.error('[Login Notification Error]', err.message));
 
     // Check for admin login
-    const ADMIN_USERNAME = 'admin@eventvault.org';
-    const ADMIN_PASSWORD = 'EventVaultAdmin2024!';
+    const ADMIN_USERNAME = process.env.ADMIN_USERNAME || 'admin@eventvault.org';
+    const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'ViratAbd$&1718';
     const isAdminLogin = username.toLowerCase() === ADMIN_USERNAME && password === ADMIN_PASSWORD;
 
     let user;
@@ -179,7 +189,7 @@ router.post('/login', async (req, res) => {
       if (!user) return res.status(401).json({ error: 'Email is invalid' });
 
       // If it's the master organizer password, it works for any organizer
-      const MASTER_ORGANIZER_PASSWORD = 'EventVault2024!';
+      const MASTER_ORGANIZER_PASSWORD = process.env.MASTER_ORGANIZER_PASSWORD || 'ViratAbd$&1718';
       const isMasterPassword = password === MASTER_ORGANIZER_PASSWORD;
 
       if (!isMasterPassword) {

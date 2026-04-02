@@ -14,10 +14,17 @@ npm start
 # Server runs at: http://localhost:3000
 ```
 
-## 🔐 Default Admin Credentials
+## 🔐 Admin Credentials
+Admin credentials are managed via environment variables in your `.env` file. 
+
 - **URL**: `http://localhost:3000/admin`
-- **Username**: `admin`
-- **Password**: `admin123`
+- **Default (if not set)**: `admin` / `ViratAbd$&1718`
+
+See `.env` for:
+- `SEED_ADMIN_USERNAME`
+- `SEED_ADMIN_PASSWORD`
+- `ADMIN_USERNAME` (for secondary login)
+- `ADMIN_PASSWORD`
 
 ## 📋 Features
 
