@@ -1,5 +1,4 @@
 require('dotenv').config();
-const functions = require('firebase-functions/v1');
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
@@ -34,9 +33,8 @@ app.use('/api/analytics', analyticsRoutes);
 app.use('/api/certificates', certificateRoutes);
 app.use('/api/chat', chatRoutes);
 
-// Serve static files when running as a standalone app (Local or Cloud Run)
-if (!process.env.FUNCTION_NAME || process.env.K_SERVICE) {
-  app.use(express.static(path.join(__dirname, 'public')));
+// Serve static files
+app.use(express.static(path.join(__dirname, 'public')));
   
   // Serve pages
   app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
@@ -61,30 +59,6 @@ if (!process.env.FUNCTION_NAME || process.env.K_SERVICE) {
     console.log('[Cron] Running daily report...');
     sendDailyCSVReport();
   });
-}
-
-// ─── FIREBASE CLOUD FUNCTIONS ─────────────────────────────────────────────
-
-// Main API Export
-exports.api = functions.https.onRequest(app);
-
-// Scheduled Reminders
-exports.scheduledReminders = functions.pubsub
-  .schedule('every 15 minutes')
-  .onRun(async (context) => {
-    console.log('[Scheduled] Running reminders...');
-    await reminderService.sendReminders();
-    return null;
-  });
-
-// Scheduled CSV Report (Runs at 9am, 12pm, 3pm, 6pm, 9pm IST)
-exports.scheduledDailyReport = functions.pubsub
-  .schedule('0 9,12,15,18,21 * * *')
-  .timeZone('Asia/Kolkata')
-  .onRun(async (context) => {
-    await sendDailyCSVReport();
-    return null;
-  });
 
 // ─── UTILS ────────────────────────────────────────────────────────────────
 
@@ -92,6 +66,7 @@ exports.scheduledDailyReport = functions.pubsub
 async function seedAdmin() {
   const bcrypt = require('bcryptjs');
   try {
+    await db.refreshSchema();
     const adminUser = process.env.SEED_ADMIN_USERNAME;
     const adminPass = process.env.SEED_ADMIN_PASSWORD;
     if (!adminUser || !adminPass) {
@@ -153,9 +128,4 @@ async function sendDailyCSVReport() {
   }
 }
 
-// Cloud Function environment handles execution
-module.exports = {
-  api: exports.api,
-  scheduledReminders: exports.scheduledReminders,
-  scheduledDailyReport: exports.scheduledDailyReport
-};
+// End of application

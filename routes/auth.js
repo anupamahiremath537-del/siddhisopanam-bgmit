@@ -180,27 +180,18 @@ router.post('/login', async (req, res) => {
 
     let user;
     if (isAdminLogin) {
-      // Use the matched admin username for consistency
+      // Use matched admin username for consistency
       const effectiveAdminUser = (inputUser === SEED_ADMIN_USERNAME.toLowerCase()) ? SEED_ADMIN_USERNAME : ADMIN_USERNAME;
       
-      // For admin login, find or create the central admin account
-      user = await db.findOne('users', { username: effectiveAdminUser, role: 'admin' });
-      if (!user) {
-        // Create the central admin account
-        const hash = await bcrypt.hash(ADMIN_PASSWORD, 10);
-        const newUser = {
-          username: effectiveAdminUser,
-          password: hash,
-          role: 'admin',
-          name: 'System Administrator',
-          email: effectiveAdminUser.includes('@') ? effectiveAdminUser : 'admin@eventvault.org',
-          approved: true,
-          createdAt: new Date()
-        };
-        const inserted = await db.insert('users', newUser);
-        user = { ...newUser, _id: inserted._id };
-        console.log(`✅ Central admin created: ${effectiveAdminUser}`);
-      }
+      console.log(`✅ Admin login authenticated via .env: ${effectiveAdminUser}`);
+      // Skip the DB lookup for admins to ensure login always works even if DB is glitchy
+      user = { 
+        username: effectiveAdminUser, 
+        role: 'admin', 
+        name: 'System Administrator',
+        email: effectiveAdminUser.includes('@') ? effectiveAdminUser : 'admin@eventvault.org',
+        id: 'admin_id_from_env'
+      };
     } else {
       // Rejection: If the username matches any of the admin accounts but password doesn't, it's an unauthorized attempt
       if (inputUser === ADMIN_USERNAME.toLowerCase() || inputUser === SEED_ADMIN_USERNAME.toLowerCase()) {

@@ -30,7 +30,7 @@ function generateInsertSQL(tableName, docs) {
     });
     
     statements.push(
-      `INSERT INTO ${tableName} (${columnArray.map(c => `"${c}"`).join(', ')}) VALUES (${values.join(', ')}) ON CONFLICT("id") DO UPDATE SET ${columnArray.filter(c => c !== 'id').map(c => `"${c}" = EXCLUDED."${c}"`).join(', ')};`
+      `INSERT INTO ${tableName} (${columnArray.map(c => `"${c.toLowerCase()}"`).join(', ')}) VALUES (${values.join(', ')}) ON CONFLICT("id") DO UPDATE SET ${columnArray.filter(c => c !== 'id').map(c => `"${c.toLowerCase()}" = EXCLUDED."${c.toLowerCase()}"`).join(', ')};`
     );
   }
   

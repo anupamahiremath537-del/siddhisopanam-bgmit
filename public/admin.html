@@ -45,6 +45,30 @@
   --invert-icons: invert(0);
 }
 
+/* BRUTALIST THEME (Dark Base) */
+[data-theme="brutalist"] {
+  --bg: #09090b;
+  --surface: #18181b;
+  --surface2: #27272a;
+  --border: #f4ea24;
+  --accent: #f4ea24;
+  --accent2: #ff0055;
+  --accent3: #00ff9d;
+  --accent4: #00e5ff;
+  --text: #ffffff;
+  --text2: #d4d4d8;
+  --text3: #a1a1aa;
+  --radius: 0px;
+  --shadow: 6px 6px 0px #f4ea24;
+  --shadow-lg: 10px 10px 0px #f4ea24;
+  --invert-icons: invert(1);
+}
+
+[data-theme="brutalist"] * { border-radius: 0px !important; }
+[data-theme="brutalist"] .login-card, [data-theme="brutalist"] .stat-card, [data-theme="brutalist"] .event-card, [data-theme="brutalist"] .chart-card, [data-theme="brutalist"] .table-wrap, [data-theme="brutalist"] .modal, [data-theme="brutalist"] .toast {
+  border: 3px solid var(--border);
+}
+
 * { margin:0; padding:0; box-sizing:border-box; }
 body { background:var(--bg); color:var(--text); font-family:'Syne', sans-serif; min-height:100vh; transition: background 0.4s var(--ease), color 0.4s var(--ease); overflow-x: hidden; }
 ::selection { background:var(--accent); color:#fff; }
@@ -89,16 +113,28 @@ body { background:var(--bg); color:var(--text); font-family:'Syne', sans-serif; 
 .form-group input:focus { background: var(--surface); box-shadow: 0 0 0 2px var(--accent), 0 8px 24px rgba(76,69,229,0.12); }
 .form-group:focus-within label { color: var(--accent); }
 
-.btn { display:inline-flex; align-items:center; justify-content:center; gap:8px; padding:12px 24px; border-radius:12px; font-family:'Syne',sans-serif; font-weight:600; font-size:14px; cursor:pointer; transition:all 0.3s var(--ease); border:none; text-decoration:none; position: relative; overflow: hidden; }
-.btn:active { transform: scale(0.97); }
-.btn-primary { background:var(--accent); color:#fff; box-shadow: 0 4px 12px rgba(108,99,255,0.25); }
+.btn { display:inline-flex; align-items:center; justify-content:center; gap:8px; padding:12px 24px; border-radius:var(--radius); font-family:'Syne',sans-serif; font-weight:700; font-size:14px; cursor:pointer; transition:all 0.2s var(--ease); border:2px solid transparent; text-decoration:none; position: relative; overflow: hidden; text-transform:uppercase; letter-spacing:0.5px; }
+.btn:active { transform: scale(0.96); }
+.btn-primary { background:var(--accent); color:#fff; border-color:var(--accent); box-shadow: 0 4px 12px rgba(108,99,255,0.25); }
+[data-theme="brutalist"] .btn-primary { color: #000; box-shadow: var(--shadow); }
 .btn-primary:hover { background:#5b52e0; transform:translateY(-2px); box-shadow: 0 8px 24px rgba(108,99,255,0.35); }
-.btn-danger { background:var(--accent2); color:#fff; }
-.btn-danger:hover { background:#e05555; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(255,107,107,0.2); }
-.btn-success { background:var(--accent3); color:#000; }
-.btn-success:hover { background:#35c07a; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(67,217,143,0.2); }
-.btn-outline { background:transparent; border:2px solid var(--border); color:var(--text2); }
-.btn-outline:hover { border-color:var(--accent); color:var(--accent); background: rgba(108,99,255,0.05); }
+[data-theme="brutalist"] .btn-primary:hover { background:var(--accent); filter: brightness(1.2); box-shadow: var(--shadow-lg); }
+
+.btn-danger { background:var(--accent2); color:#fff; border-color:var(--accent2); box-shadow: 0 4px 12px rgba(255,107,107,0.2); }
+[data-theme="brutalist"] .btn-danger { color: #fff; box-shadow: var(--shadow); }
+.btn-danger:hover { background:#e05555; transform: translateY(-2px); box-shadow: 0 8px 24px rgba(255,107,107,0.3); }
+[data-theme="brutalist"] .btn-danger:hover { background:var(--accent2); box-shadow: var(--shadow-lg); }
+
+.btn-success { background:var(--accent3); color:#000; border-color:var(--accent3); box-shadow: 0 4px 12px rgba(67,217,143,0.2); }
+[data-theme="brutalist"] .btn-success { box-shadow: var(--shadow); }
+.btn-success:hover { background:#35c07a; transform: translateY(-2px); box-shadow: 0 8px 24px rgba(67,217,143,0.3); }
+[data-theme="brutalist"] .btn-success:hover { background:var(--accent3); box-shadow: var(--shadow-lg); }
+
+.btn-outline { background:transparent; border-color:var(--border); color:var(--text); box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+[data-theme="brutalist"] .btn-outline { box-shadow: var(--shadow); }
+.btn-outline:hover { border-color:var(--accent); color:var(--accent); background: rgba(108,99,255,0.05); transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.1); }
+[data-theme="brutalist"] .btn-outline:hover { box-shadow: var(--shadow-lg); background: transparent; }
+
 .btn-sm { padding:8px 16px; font-size:12px; }
 .btn-full { width:100%; }
 .error-msg { color:var(--accent2); font-size:13px; margin-top:16px; font-family:'DM Mono',monospace; animation: fadeIn 0.3s var(--ease); }
@@ -645,8 +681,8 @@ input[type="time"]::-webkit-calendar-picker-indicator {
           <button class="btn btn-outline btn-sm desktop-only" onclick="toggleTheme()" id="dash-theme-btn">
             <span class="theme-icon">☀️</span> <span class="theme-text">Light Mode</span>
           </button>
-          <button class="btn btn-success" onclick="openCreateTeamModal()">+ Create Volunteer Team</button>
-          <button class="btn btn-primary" onclick="showPage('events');openCreateModal()">+ New Event</button>
+          <button class="btn btn-success" onclick="openCreateTeamModal()">+ Create Support Team</button>
+          <button class="btn btn-primary" onclick="showPage('events');openCreateModal()">+ Create New Event</button>
         </div>
       </div>
       <div class="stats-grid" id="stats-grid">
@@ -683,8 +719,8 @@ input[type="time"]::-webkit-calendar-picker-indicator {
           <button class="btn btn-outline btn-sm desktop-only" onclick="toggleTheme()" id="events-theme-btn">
             <span class="theme-icon">☀️</span> <span class="theme-text">Light Mode</span>
           </button>
-          <button class="btn btn-success" onclick="openCreateTeamModal()">+ Create Volunteer Team</button>
-          <button class="btn btn-primary" onclick="openCreateModal()">+ Create Event</button>
+          <button class="btn btn-success" onclick="openCreateTeamModal()">+ Create Support Team</button>
+          <button class="btn btn-primary" onclick="openCreateModal()">+ Create New Event</button>
         </div>
       </div>
       <div class="search-bar" style="flex-wrap:wrap">
@@ -1095,32 +1131,34 @@ let editingEventStatus = 'active';
 let currentTheme = localStorage.getItem('ev_theme') || 'light';
 
 function toggleTheme() {
-  currentTheme = currentTheme === 'dark' ? 'light' : 'dark';
-  document.body.setAttribute('data-theme', currentTheme);
-  localStorage.setItem('ev_theme', currentTheme);
+  if (currentTheme === 'dark') currentTheme = 'light';
+  else if (currentTheme === 'light') currentTheme = 'brutalist';
+  else currentTheme = 'dark';
   
+  localStorage.setItem('ev_theme', currentTheme);
+  applyThemeUI();
+}
+
+function applyThemeUI() {
+  document.body.setAttribute('data-theme', currentTheme);
   const icons = document.querySelectorAll('.theme-icon');
   const texts = document.querySelectorAll('.theme-text');
   
   if (currentTheme === 'light') {
     icons.forEach(i => i.textContent = '🌙');
     texts.forEach(t => t.textContent = 'Dark Mode');
+  } else if (currentTheme === 'brutalist') {
+    icons.forEach(i => i.textContent = '⚡');
+    texts.forEach(t => t.textContent = 'Normal Dark');
   } else {
+    // dark mode defaults
     icons.forEach(i => i.textContent = '☀️');
     texts.forEach(t => t.textContent = 'Light Mode');
   }
 }
 
 // Initial theme apply
-document.body.setAttribute('data-theme', currentTheme);
-setTimeout(() => {
-  const icons = document.querySelectorAll('.theme-icon');
-  const texts = document.querySelectorAll('.theme-text');
-  if (currentTheme === 'light') {
-    icons.forEach(i => i.textContent = '🌙');
-    texts.forEach(t => t.textContent = 'Dark Mode');
-  }
-}, 100);
+applyThemeUI();
 
 // ─── AUTH ───────────────────────────────────────────────
 function togglePass(id, eyeOpenId, eyeClosedId) {
@@ -1827,7 +1865,7 @@ function openCreateModal() {
 
 function openCreateTeamModal() {
   editingEventId = null; editingEventStatus = 'active'; roles = [];
-  document.getElementById('modal-title').textContent = 'Create Volunteer Team';
+  document.getElementById('modal-title').textContent = 'Create Staff / Support Team';
   document.getElementById('save-btn-text').textContent = 'Create Team';
   document.getElementById('ev-is-supportive-team').value = 'true';
   document.querySelector('label[for="ev-limit"]').textContent = 'Total Slots Required *';
@@ -1853,7 +1891,7 @@ function openEditModal(ev) {
   editingEventId = ev.eventId;
   editingEventStatus = ev.status || 'active';
   roles = (ev.volunteerRoles || []).map(r => ({ ...r }));
-  document.getElementById('modal-title').textContent = ev.isSupportiveTeam ? 'Edit Volunteer Team' : 'Edit Event';
+  document.getElementById('modal-title').textContent = ev.isSupportiveTeam ? 'Edit Staff / Support Team' : 'Edit Event';
   document.getElementById('save-btn-text').textContent = 'Save Changes';
   document.getElementById('ev-is-supportive-team').value = ev.isSupportiveTeam ? 'true' : 'false';
   document.querySelector('label[for="ev-limit"]').textContent = ev.isSupportiveTeam ? 'Total Slots Required *' : 'Participant Limit';

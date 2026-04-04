@@ -52,16 +52,16 @@ function generateCreateStatement(tableName, schema) {
   
   // id column first
   if (schema.id) {
-    columns.push('  id TEXT PRIMARY KEY');
+    columns.push('  "id" TEXT PRIMARY KEY');
   }
 
   // other columns
   for (const [key, type] of Object.entries(schema)) {
     if (key === 'id') continue;
-    columns.push(`  ${key} ${type}`);
+    columns.push(`  "${key.toLowerCase()}" ${type}`);
   }
 
-  return `CREATE TABLE IF NOT EXISTS ${tableName} (\n${columns.join(',\n')}\n);`;
+  return `CREATE TABLE IF NOT EXISTS "${tableName}" (\n${columns.join(',\n')}\n);`;
 }
 
 async function createAllTables(supabase) {
@@ -92,13 +92,19 @@ async function createAllTables(supabase) {
     console.log(`Creating table: ${tableName}`);
     console.log(createStmt);
 
-    const { error } = await supabase.rpc('exec_sql', { sql: createStmt }).catch(() => {
-      // Fallback: use direct SQL if rpc doesn't exist
-      return supabase.from(tableName).select('*').limit(1);
-    });
+    // Using rpc directly without catch chain as it returns a promise
+    const { error } = await supabase.rpc('exec_sql', { sql: createStmt });
 
-    if (error && !error.message.includes('already exists')) {
-      console.error(`  ✗ Error: ${error.message}`);
+    if (error) {
+      if (error.message.includes('already exists')) {
+        console.log(`  ✓ Table ${tableName} already exists\n`);
+      } else if (error.message.includes('function exec_sql(text) does not exist')) {
+        console.error(`  ✗ Error: The 'exec_sql' function is not installed in your Supabase database.`);
+        console.log(`  Please install it or run this SQL manually:`);
+        console.log(createStmt);
+      } else {
+        console.error(`  ✗ Error: ${error.message}`);
+      }
     } else {
       console.log(`  ✓ Table ${tableName} ready\n`);
     }
