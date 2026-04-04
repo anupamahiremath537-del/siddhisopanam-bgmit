@@ -6,6 +6,7 @@ const path = require('path');
 const cron = require('node-cron');
 const db = require('./utils/database');
 const authRoutes = require('./routes/auth');
+const supabaseAuthRoutes = require('./routes/supabase-auth');
 const eventRoutes = require('./routes/events');
 const registrationRoutes = require('./routes/registrations');
 const analyticsRoutes = require('./routes/analytics');
@@ -26,6 +27,7 @@ app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
 // API Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/supabase-auth', supabaseAuthRoutes);
 app.use('/api/events', eventRoutes);
 app.use('/api/registrations', registrationRoutes);
 app.use('/api/analytics', analyticsRoutes);

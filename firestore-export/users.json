@@ -1,0 +1,101 @@
+[
+  {
+    "username": "navinmthd@gmail.com",
+    "password": "$2a$10$3SYUgf0TcgVcrxnvr2J1Z.YuqdBu/b/X2L0w0EKHeBTzjxEJ/gNIy",
+    "role": "organizer",
+    "name": "Naveen",
+    "email": "navinmthd@gmail.com",
+    "createdAt": "2026-04-01T10:53:06.715Z",
+    "approved": true,
+    "approve": true,
+    "id": "16LtEpZGBaoZOx6RUaoc"
+  },
+  {
+    "username": "admin@eventvault.org",
+    "password": "$2a$10$IeCSspg.Vbk.JQiYkX3tnuqCZ8pfwjv/MwYQvp3nEbdXxq4chb1Rm",
+    "role": "admin",
+    "name": "System Administrator",
+    "email": "admin@eventvault.org",
+    "approved": true,
+    "createdAt": "2026-03-25T08:57:39.708Z",
+    "id": "7lRrclksyZboZ3HmFAIS"
+  },
+  {
+    "username": "admin",
+    "password": "$2a$10$zcHEOdP4Vg9W.Jrtl4guK.XNDxyf7UC3EkpTEFZzcvDza/1KJNTlu",
+    "role": "admin",
+    "name": "Event Organizer",
+    "email": "admin@events.com",
+    "createdAt": "2026-03-23T08:28:55.867Z",
+    "id": "9nLs3RPliMA3MCG2OQrF"
+  },
+  {
+    "username": "admin",
+    "password": "$2a$10$cawxtCDX9zhhHj5dfyB70eRW.umJJLYlDmu0IEM8MZOecTiuSZIjO",
+    "role": "admin",
+    "name": "Event Organizer",
+    "email": "admin@events.com",
+    "createdAt": "2026-03-31T03:30:57.360Z",
+    "id": "AK1sVDy6Qxsdv0wE6Di7"
+  },
+  {
+    "username": "alienv1717@gmail.com",
+    "password": "$2a$10$1N2z87Ue0AuSa7oA9CBXmOAhAQA1Y7NaeBs8qe.dHmTF823GAcGKu",
+    "role": "organizer",
+    "name": "Alien",
+    "email": "alienv1717@gmail.com",
+    "createdAt": "2026-03-31T06:30:38.338Z",
+    "approve": true,
+    "approved": true,
+    "id": "Il2kCuRj9uJZX8noAsc8"
+  },
+  {
+    "username": "admin",
+    "password": "$2a$10$0ThlH5LP2BtQ3uYV6ezlLOCeFIS5jWWdw0H7q2YeYF8SdxWg9PANq",
+    "role": "admin",
+    "name": "Event Organizer",
+    "email": "admin@events.com",
+    "createdAt": "2026-03-13T09:43:29.634Z",
+    "status": "active",
+    "id": "LmYzDuw63ft0LCV6"
+  },
+  {
+    "username": "kedardhayapule32@gmail.com",
+    "role": "organizer",
+    "name": "Kedar",
+    "email": "kedardhayapule32@gmail.com",
+    "createdAt": "2026-03-20T15:00:02.605Z",
+    "password": "$2a$10$kUAuC4hhYKDC3Vyj2O/zheGLLAAUxOAJNmXSa7EjxDocPGUXGPnMy",
+    "approved": true,
+    "id": "hwqctfHsTVQkUOR4Nbf0"
+  },
+  {
+    "username": "admin",
+    "password": "$2a$10$xBVUd9NyVr6.zg7kV8YST.57BUhxl0Pm6R7h2ze68cAfHnsv1K0Ny",
+    "role": "admin",
+    "name": "Event Organizer",
+    "email": "admin@events.com",
+    "createdAt": "2026-03-17T13:44:26.492Z",
+    "id": "iIERwffGkcQGYnDVD40p"
+  },
+  {
+    "username": "anupamahiremath537@gmail.com",
+    "role": "organizer",
+    "name": "Anupama",
+    "email": "anupamahiremath537@gmail.com",
+    "createdAt": "2026-03-20T14:59:35.651Z",
+    "password": "$2a$10$NQ8pc9rkfzRoIB9F1Z3xhuAbZ2XgB2A0rpcs15w7Ounxj9vJZg8Yq",
+    "approved": true,
+    "id": "okYz0yfyJ43tcXfYIjaf"
+  },
+  {
+    "username": "admin@eventvault.org",
+    "password": "$2a$10$4u.BYwqS5I5h.MYNIBM2Fux..kZ1tIc0aIqYGtQyQwy9v3ZEuQbMO",
+    "role": "admin",
+    "name": "System Administrator",
+    "email": "admin@eventvault.org",
+    "approved": true,
+    "createdAt": "2026-03-21T11:57:23.016Z",
+    "id": "xVJr9qtkpL38FeKiHfw8"
+  }
+]

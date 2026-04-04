@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EventVault - Supabase Auth Setup</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        .auth-container {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            width: 100%;
+            max-width: 450px;
+            padding: 40px;
+        }
+        .auth-container h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #333;
+            font-size: 28px;
+        }
+        .tab-buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #eee;
+        }
+        .tab-btn {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            background: none;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 500;
+            color: #999;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s;
+        }
+        .tab-btn.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 500;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        .btn {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+        .btn-secondary {
+            background: #f0f0f0;
+            color: #333;
+        }
+        .btn-secondary:hover {
+            background: #e0e0e0;
+        }
+        .alert {
+            padding: 12px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            display: none;
+        }
+        .alert.show {
+            display: block;
+        }
+        .alert.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .alert.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .link-text {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 14px;
+            color: #666;
+        }
+        .link-text a {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .link-text a:hover {
+            text-decoration: underline;
+        }
+        .user-info {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        .user-info p {
+            margin: 8px 0;
+            color: #333;
+            font-size: 14px;
+        }
+        .user-info strong {
+            color: #667eea;
+        }
+    </style>
+</head>
+<body>
+    <div class="auth-container">
+        <h1>EventVault Auth</h1>
+
+        <div id="alert" class="alert"></div>
+
+        <div id="authenticated" style="display: none;">
+            <div class="user-info">
+                <p><strong>Email:</strong> <span id="userEmail"></span></p>
+                <p><strong>User ID:</strong> <span id="userId"></span></p>
+            </div>
+            <button class="btn btn-secondary" onclick="logout()">Sign Out</button>
+        </div>
+
+        <div id="notAuthenticated" style="display: block;">
+            <div class="tab-buttons">
+                <button class="tab-btn active" onclick="switchTab('signin')">Sign In</button>
+                <button class="tab-btn" onclick="switchTab('signup')">Sign Up</button>
+                <button class="tab-btn" onclick="switchTab('reset')">Reset</button>
+            </div>
+
+            <!-- Sign In Tab -->
+            <div id="signin" class="tab-content active">
+                <form onsubmit="handleSignIn(event)">
+                    <div class="form-group">
+                        <label for="signinEmail">Email</label>
+                        <input type="email" id="signinEmail" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="signinPassword">Password</label>
+                        <input type="password" id="signinPassword" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Sign In</button>
+                </form>
+            </div>
+
+            <!-- Sign Up Tab -->
+            <div id="signup" class="tab-content">
+                <form onsubmit="handleSignUp(event)">
+                    <div class="form-group">
+                        <label for="signupName">Full Name</label>
+                        <input type="text" id="signupName" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="signupEmail">Email</label>
+                        <input type="email" id="signupEmail" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="signupUSN">USN</label>
+                        <input type="text" id="signupUSN" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="signupPhone">Phone (optional)</label>
+                        <input type="tel" id="signupPhone">
+                    </div>
+                    <div class="form-group">
+                        <label for="signupPassword">Password</label>
+                        <input type="password" id="signupPassword" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Create Account</button>
+                </form>
+            </div>
+
+            <!-- Reset Password Tab -->
+            <div id="reset" class="tab-content">
+                <form onsubmit="handleResetPassword(event)">
+                    <div class="form-group">
+                        <label for="resetEmail">Email</label>
+                        <input type="email" id="resetEmail" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Send Reset Email</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="/js/supabase-config.js"></script>
+
+    <script>
+        // Check if user is logged in
+        document.addEventListener('DOMContentLoaded', async () => {
+            const session = await getSession();
+            if (session) {
+                showAuthenticatedView(session.user);
+            }
+        });
+
+        function switchTab(tab) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+            document.getElementById(tab).classList.add('active');
+            event.target.classList.add('active');
+        }
+
+        function showAlert(message, type = 'success') {
+            const alertEl = document.getElementById('alert');
+            alertEl.textContent = message;
+            alertEl.className = `alert show ${type}`;
+            setTimeout(() => alertEl.classList.remove('show'), 5000);
+        }
+
+        async function handleSignIn(event) {
+            event.preventDefault();
+            const email = document.getElementById('signinEmail').value;
+            const password = document.getElementById('signinPassword').value;
+
+            const result = await signIn(email, password);
+            if (result.success) {
+                showAlert('Signed in successfully!', 'success');
+                setTimeout(() => {
+                    showAuthenticatedView(result.user);
+                }, 500);
+            } else {
+                showAlert(`Error: ${result.error}`, 'error');
+            }
+        }
+
+        async function handleSignUp(event) {
+            event.preventDefault();
+            const name = document.getElementById('signupName').value;
+            const email = document.getElementById('signupEmail').value;
+            const usn = document.getElementById('signupUSN').value;
+            const phone = document.getElementById('signupPhone').value;
+            const password = document.getElementById('signupPassword').value;
+
+            const result = await signUp(email, password, { name, usn, phone });
+            if (result.success) {
+                showAlert('Account created! Check your email to confirm.', 'success');
+                document.getElementById('signup').reset();
+            } else {
+                showAlert(`Error: ${result.error}`, 'error');
+            }
+        }
+
+        async function handleResetPassword(event) {
+            event.preventDefault();
+            const email = document.getElementById('resetEmail').value;
+
+            const result = await resetPassword(email);
+            if (result.success) {
+                showAlert('Password reset email sent!', 'success');
+                document.getElementById('resetEmail').value = '';
+            } else {
+                showAlert(`Error: ${result.error}`, 'error');
+            }
+        }
+
+        function showAuthenticatedView(user) {
+            document.getElementById('notAuthenticated').style.display = 'none';
+            document.getElementById('authenticated').style.display = 'block';
+            document.getElementById('userEmail').textContent = user.email;
+            document.getElementById('userId').textContent = user.id;
+        }
+
+        async function logout() {
+            const result = await signOut();
+            if (result.success) {
+                showAlert('Signed out successfully!', 'success');
+                setTimeout(() => {
+                    document.getElementById('authenticated').style.display = 'none';
+                    document.getElementById('notAuthenticated').style.display = 'block';
+                }, 500);
+            }
+        }
+    </script>
+</body>
+</html>

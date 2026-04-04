@@ -1,27 +1,107 @@
-const admin = require('firebase-admin');
-const path = require('path');
+const { createClient } = require('@supabase/supabase-js');
 
-// Initialize Firebase
-if (!admin.apps.length) {
-  try {
-    let serviceAccount;
-    if (process.env.FIREBASE_SERVICE_ACCOUNT) {
-      serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
-    } else {
-      const serviceAccountPath = path.join(__dirname, '../firebase-service-account.json');
-      serviceAccount = require(serviceAccountPath);
-    }
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
 
-    admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount)
-    });
-    console.log('✅ Firebase initialized successfully');
-  } catch (error) {
-    console.error('❌ Error initializing Firebase:', error.message);
-  }
+if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
+  console.error('❌ Supabase configuration is missing. Please set SUPABASE_URL and SUPABASE_SERVICE_KEY in your environment.');
 }
 
-const db_firestore = admin.firestore();
+const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, {
+  auth: { persistSession: false, autoRefreshToken: false }
+});
+
+const normalizeField = key => key === '_id' ? 'id' : key;
+const mapRecord = record => {
+  if (!record) return null;
+  const { id, ...rest } = record;
+  return { _id: id, ...rest };
+};
+
+const buildQuery = (collection, query = {}) => {
+  let builder = supabase.from(collection).select('*');
+  const regexFilters = [];
+  const jsFilters = [];
+
+  for (const [key, value] of Object.entries(query)) {
+    const field = normalizeField(key);
+
+    if (value instanceof RegExp) {
+      regexFilters.push({ key, value });
+      continue;
+    }
+
+    if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+      if (value.$ne !== undefined) {
+        builder = builder.not(`${field}.eq.${value.$ne}`);
+      } else if (value.$in !== undefined) {
+        builder = builder.in(field, value.$in);
+      } else if (value.$gt !== undefined) {
+        builder = builder.gt(field, value.$gt);
+      } else if (value.$lt !== undefined) {
+        builder = builder.lt(field, value.$lt);
+      } else if (value.$gte !== undefined) {
+        builder = builder.gte(field, value.$gte);
+      } else if (value.$lte !== undefined) {
+        builder = builder.lte(field, value.$lte);
+      } else {
+        builder = builder.eq(field, value);
+      }
+    } else {
+      builder = builder.eq(field, value);
+    }
+  }
+
+  return { builder, regexFilters, jsFilters };
+};
+
+const runQuery = async (builder, regexFilters, jsFilters, sort = {}) => {
+  const { data, error } = await builder;
+  if (error) {
+    console.error(`❌ Supabase query error:`, error.message);
+    throw error;
+  }
+
+  let results = (data || []).map(mapRecord);
+
+  for (const { key, value } of regexFilters) {
+    results = results.filter(doc => value.test(doc[key]));
+  }
+
+  for (const filterFn of jsFilters) {
+    results = results.filter(filterFn);
+  }
+
+  const sortEntries = Object.entries(sort);
+  if (sortEntries.length > 0) {
+    results.sort((a, b) => {
+      for (const [key, direction] of sortEntries) {
+        const valA = a[key];
+        const valB = b[key];
+        if (valA < valB) return direction === -1 ? 1 : -1;
+        if (valA > valB) return direction === -1 ? -1 : 1;
+      }
+      return 0;
+    });
+  }
+
+  return results;
+};
+
+const applyUpdatePayload = (existing, update) => {
+  let updateData = update.$set || update;
+
+  if (update.$push) {
+    updateData = { ...updateData };
+    for (const [key, val] of Object.entries(update.$push)) {
+      const current = Array.isArray(existing[key]) ? existing[key] : [];
+      const next = Array.isArray(val) ? [...current, ...val] : [...current, val];
+      updateData[key] = Array.from(new Set(next));
+    }
+  }
+
+  return updateData;
+};
 
 const db = {
   async findOne(collection, query) {
@@ -30,139 +110,84 @@ const db = {
   },
 
   async find(collection, query = {}, sort = {}) {
-    let ref = db_firestore.collection(collection);
-    const regexFilters = [];
-    const jsFilters = [];
-
-    // Apply filters and track which ones need JS-side filtering
-    for (const [key, value] of Object.entries(query)) {
-      const field = key === '_id' ? admin.firestore.FieldPath.documentId() : key;
-      
-      if (value instanceof RegExp) {
-        regexFilters.push({ key, value });
-      } else if (typeof value === 'object' && value !== null) {
-        if (value.$ne !== undefined) {
-          // Firestore != requires an index when combined with other filters/sorts.
-          // We'll filter this in JS to be safe.
-          jsFilters.push(doc => doc[key] !== value.$ne);
-        } else if (value.$in !== undefined) {
-          ref = ref.where(field, 'in', value.$in);
-        } else if (value.$gt !== undefined) {
-          ref = ref.where(field, '>', value.$gt);
-        } else if (value.$lt !== undefined) {
-          ref = ref.where(field, '<', value.$lt);
-        } else if (value.$gte !== undefined) {
-          ref = ref.where(field, '>=', value.$gte);
-        } else if (value.$lte !== undefined) {
-          ref = ref.where(field, '<=', value.$lte);
-        }
-      } else {
-        ref = ref.where(field, '==', value);
-      }
+    const { builder, regexFilters, jsFilters } = buildQuery(collection, query);
+    const allSortKeys = Object.entries(sort);
+    for (const [key, direction] of allSortKeys) {
+      builder.order(normalizeField(key), { ascending: direction !== -1 });
     }
 
     try {
-      // We perform sorting in JS to avoid Firestore composite index requirements
-      const snapshot = await ref.get();
-      let results = snapshot.docs.map(doc => ({ _id: doc.id, ...doc.data() }));
-
-      // Apply regex filters manually
-      for (const { key, value } of regexFilters) {
-        results = results.filter(doc => value.test(doc[key]));
-      }
-
-      // Apply JS filters (like $ne)
-      for (const filterFn of jsFilters) {
-        results = results.filter(filterFn);
-      }
-
-      // Apply sorting manually in JS
-      const sortEntries = Object.entries(sort);
-      if (sortEntries.length > 0) {
-        results.sort((a, b) => {
-          for (const [key, direction] of sortEntries) {
-            const valA = a[key];
-            const valB = b[key];
-            if (valA < valB) return direction === -1 ? 1 : -1;
-            if (valA > valB) return direction === -1 ? -1 : 1;
-          }
-          return 0;
-        });
-      }
-
-      return results;
+      return await runQuery(builder, regexFilters, jsFilters, sort);
     } catch (error) {
-      console.error(`❌ Firestore query error on collection ${collection}:`, error.message);
-      if (error.message.includes('index')) {
-        console.warn('⚠️ Missing Firestore index. Attempting to fallback to client-side filtering...');
-        // If the query failed because of missing composite indexes, 
-        // we can try fetching all documents and filtering them in JS as a last resort.
-        try {
-          const snapshot = await db_firestore.collection(collection).get();
-          let results = snapshot.docs.map(doc => ({ _id: doc.id, ...doc.data() }));
-          
-          // Apply ALL filters in JS
-          for (const [key, value] of Object.entries(query)) {
-            if (value instanceof RegExp) {
-              results = results.filter(doc => value.test(doc[key]));
-            } else if (typeof value === 'object' && value !== null) {
-              if (value.$ne !== undefined) results = results.filter(doc => doc[key] !== value.$ne);
-              if (value.$in !== undefined) results = results.filter(doc => value.$in.includes(doc[key]));
-              if (value.$gt !== undefined) results = results.filter(doc => doc[key] > value.$gt);
-              if (value.$lt !== undefined) results = results.filter(doc => doc[key] < value.$lt);
-              if (value.$gte !== undefined) results = results.filter(doc => doc[key] >= value.$gte);
-              if (value.$lte !== undefined) results = results.filter(doc => doc[key] <= value.$lte);
-            } else {
-              results = results.filter(doc => doc[key] === value);
-            }
-          }
-
-          // Apply sorting manually in JS
-          const sortEntries = Object.entries(sort);
-          if (sortEntries.length > 0) {
-            results.sort((a, b) => {
-              for (const [key, direction] of sortEntries) {
-                const valA = a[key];
-                const valB = b[key];
-                if (valA < valB) return direction === -1 ? 1 : -1;
-                if (valA > valB) return direction === -1 ? -1 : 1;
-              }
-              return 0;
-            });
-          }
-          return results;
-        } catch (innerError) {
-          console.error(`❌ Fatal Firestore fallback error:`, innerError.message);
+      if (regexFilters.length || jsFilters.length) {
+        const { data, error: fallbackError } = await supabase.from(collection).select('*');
+        if (fallbackError) {
+          console.error('❌ Supabase fallback error:', fallbackError.message);
           return [];
         }
+        let results = (data || []).map(mapRecord);
+        for (const { key, value } of regexFilters) {
+          results = results.filter(doc => value.test(doc[key]));
+        }
+        for (const filterFn of jsFilters) {
+          results = results.filter(filterFn);
+        }
+        const sortEntries = Object.entries(sort);
+        if (sortEntries.length > 0) {
+          results.sort((a, b) => {
+            for (const [key, direction] of sortEntries) {
+              const valA = a[key];
+              const valB = b[key];
+              if (valA < valB) return direction === -1 ? 1 : -1;
+              if (valA > valB) return direction === -1 ? -1 : 1;
+            }
+            return 0;
+          });
+        }
+        return results;
       }
       return [];
     }
   },
 
   async insert(collection, doc) {
-    const res = await db_firestore.collection(collection).add(doc);
-    return { _id: res.id, ...doc };
+    const payload = { ...doc };
+    if (payload._id) {
+      payload.id = payload._id;
+      delete payload._id;
+    }
+
+    const { data, error } = await supabase.from(collection).insert(payload).select().single();
+    if (error) {
+      console.error(`❌ Supabase insert error:`, error.message);
+      throw error;
+    }
+    return mapRecord(data);
   },
 
   async update(collection, query, update, options = {}) {
-    if (query._id) {
-      const docRef = db_firestore.collection(collection).doc(query._id);
-      let updateData = update.$set || update;
-      
-      if (update.$push) {
-        for (const [key, val] of Object.entries(update.$push)) {
-          updateData[key] = admin.firestore.FieldValue.arrayUnion(val);
-        }
+    if (query._id || query.id) {
+      const targetId = query._id || query.id;
+      const existing = await this.findOne(collection, { _id: targetId });
+      if (!existing) return 0;
+      const updateData = applyUpdatePayload(existing, update);
+      const { error } = await supabase.from(collection).update(updateData).eq('id', targetId);
+      if (error) {
+        console.error(`❌ Supabase update error:`, error.message);
+        throw error;
       }
-      await docRef.update(updateData);
       return 1;
     }
 
     const docs = await this.find(collection, query);
     let count = 0;
     for (const doc of docs) {
-      await db_firestore.collection(collection).doc(doc._id).update(update.$set || update);
+      const updateData = applyUpdatePayload(doc, update);
+      const { error } = await supabase.from(collection).update(updateData).eq('id', doc._id);
+      if (error) {
+        console.error(`❌ Supabase update error:`, error.message);
+        throw error;
+      }
       count++;
       if (!options.multi) break;
     }
@@ -170,10 +195,24 @@ const db = {
   },
 
   async remove(collection, query, options = {}) {
+    if (query._id || query.id) {
+      const targetId = query._id || query.id;
+      const { error } = await supabase.from(collection).delete().eq('id', targetId);
+      if (error) {
+        console.error(`❌ Supabase delete error:`, error.message);
+        throw error;
+      }
+      return 1;
+    }
+
     const docs = await this.find(collection, query);
     let count = 0;
     for (const doc of docs) {
-      await db_firestore.collection(collection).doc(doc._id).delete();
+      const { error } = await supabase.from(collection).delete().eq('id', doc._id);
+      if (error) {
+        console.error(`❌ Supabase delete error:`, error.message);
+        throw error;
+      }
       count++;
       if (!options.multi) break;
     }
