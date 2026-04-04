@@ -5,10 +5,43 @@
 [build.environment]
   NODE_VERSION = "20"
 
+# Redirect API requests to your backend. Replace the URL below with your actual backend base URL.
 [[redirects]]
   from = "/api/*"
-  to = "https://your-backend-url/:splat"
+  to = "https://eventvault-e4421.web.app/:splat"
   status = 200
+  force = false
+
+# Support client-side and dynamic routes for static HTML pages.
+[[redirects]]
+  from = "/choice/*"
+  to = "/choice.html"
+  status = 200
+  force = false
+
+[[redirects]]
+  from = "/signup/*"
+  to = "/signup.html"
+  status = 200
+  force = false
+
+[[redirects]]
+  from = "/user-login"
+  to = "/user-login.html"
+  status = 200
+  force = false
+
+[[redirects]]
+  from = "/user-signup"
+  to = "/user-signup.html"
+  status = 200
+  force = false
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+  force = false
 
 [[headers]]
   for = "/*"
