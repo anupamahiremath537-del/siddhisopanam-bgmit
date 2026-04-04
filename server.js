@@ -1,5 +1,5 @@
 require('dotenv').config();
-const functions = require('firebase-functions');
+const functions = require('firebase-functions/v1');
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
@@ -32,11 +32,11 @@ app.use('/api/analytics', analyticsRoutes);
 app.use('/api/certificates', certificateRoutes);
 app.use('/api/chat', chatRoutes);
 
-// For local development only
-if (!process.env.FUNCTION_NAME && !process.env.K_SERVICE) {
+// Serve static files when running as a standalone app (Local or Cloud Run)
+if (!process.env.FUNCTION_NAME || process.env.K_SERVICE) {
   app.use(express.static(path.join(__dirname, 'public')));
   
-  // Serve pages for local development
+  // Serve pages
   app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
   app.get('/admin', (req, res) => res.sendFile(path.join(__dirname, 'public', 'admin.html')));
   app.get('/choice/:eventId', (req, res) => res.sendFile(path.join(__dirname, 'public', 'choice.html')));
@@ -44,16 +44,21 @@ if (!process.env.FUNCTION_NAME && !process.env.K_SERVICE) {
   app.get('/user-login', (req, res) => res.sendFile(path.join(__dirname, 'public', 'user-login.html')));
   app.get('/user-signup', (req, res) => res.sendFile(path.join(__dirname, 'public', 'user-signup.html')));
 
-  app.listen(PORT, () => {
-    console.log(`\n🎉 Event App running locally at: http://localhost:${PORT}\n`);
+  // For Google Cloud Run, it's better to always listen on PORT (which defaults to 8080)
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log(`\n🚀 Event App running at http://0.0.0.0:${PORT}\n`);
     seedAdmin();
   });
 
-  // Local node-cron setup
+  // Local/Cloud Run node-cron setup
   cron.schedule('*/15 * * * *', () => {
+    console.log('[Cron] Running reminders...');
     reminderService.sendReminders();
   });
-  cron.schedule('0 9,12,15,18,21 * * *', sendDailyCSVReport);
+  cron.schedule('0 9,12,15,18,21 * * *', () => {
+    console.log('[Cron] Running daily report...');
+    sendDailyCSVReport();
+  });
 }
 
 // ─── FIREBASE CLOUD FUNCTIONS ─────────────────────────────────────────────
