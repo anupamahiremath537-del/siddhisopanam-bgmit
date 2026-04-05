@@ -3,19 +3,22 @@ const nodemailer = require('nodemailer');
 // Configure SMTP transport
 const transporter = nodemailer.createTransport({
   host: 'smtp.gmail.com',
-  port: 587,
-  secure: false, // Use STARTTLS (Port 587)
+  port: 465,
+  secure: true, // Use SSL (Port 465)
+  family: 4,    // FORCE IPv4 ONLY to solve ENETUNREACH errors on Render
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS,
   },
   tls: {
-    rejectUnauthorized: false, // Helps with some cloud network restrictions
+    rejectUnauthorized: false,
     minVersion: 'TLSv1.2'
   },
   pool: true,
   maxConnections: 3,
-  maxMessages: 100
+  maxMessages: 100,
+  logger: true, // Enable logging to see the SMTP conversation
+  debug: true   // Enable debug output
 });
 
 module.exports = {
