@@ -1,8 +1,10 @@
-// utils/email.js - Optimized Nodemailer for Gmail (Fastest for 30-min deadline)
+// utils/email.js - Updated to use Port 587 (STARTTLS) for better reliability
 const nodemailer = require('nodemailer');
 
 const transporter = nodemailer.createTransport({
-  service: 'gmail',
+  host: 'smtp.gmail.com',
+  port: 587,
+  secure: false, // true for 465, false for 587
   auth: {
     user: process.env.EMAIL_USER || 'bgmitcs034@gmail.com',
     pass: process.env.EMAIL_PASS || 'yzclxidjkiwjxlxc'
@@ -12,7 +14,7 @@ const transporter = nodemailer.createTransport({
 // Verify connection on startup
 transporter.verify(function (error, success) {
   if (error) {
-    console.error('[Email SMTP Error] Credentials might be invalid:', error.message);
+    console.error('[Email SMTP Error] Connection failed:', error.message);
   } else {
     console.log('[Email SMTP] Server is ready to take our messages');
   }
