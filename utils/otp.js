@@ -52,8 +52,10 @@ module.exports = {
 
     const now = new Date();
     // Support both camelCase and lowercase from different DB drivers/schema versions
-    const expiryVal = record.expiresat || record.expiresAt;
+    const expiryVal = record.expiresAt || record.expiresat;
     
+    console.log(`[OTP Debug] Email: ${email}, Now: ${now.toISOString()}, ExpiryRaw: ${expiryVal}`);
+
     if (!expiryVal) {
         console.warn(`[OTP Warning] No expiry found for ${email}, allowing for now.`);
         await db.remove(OTP_COLLECTION, { _id: record._id });
@@ -62,10 +64,9 @@ module.exports = {
 
     const expiry = new Date(expiryVal);
     
-    if (isNaN(expiry.getTime())) {
+    if (isNaN(expiry.getTime()) || expiry.getTime() === 0) {
         console.error(`[OTP Error] Invalid expiry date for ${email}: ${expiryVal}`);
         // If we can't parse the date, it's safer to allow it than to block a valid user
-        // but let's log it clearly.
         await db.remove(OTP_COLLECTION, { _id: record._id });
         return { success: true };
     }
