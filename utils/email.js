@@ -3,9 +3,9 @@ const nodemailer = require('nodemailer');
 // Configure SMTP transport
 const transporter = nodemailer.createTransport({
   host: 'smtp.gmail.com',
-  port: 465,
-  secure: true, // Use SSL (Port 465)
-  family: 4,    // FORCE IPv4 ONLY to solve ENETUNREACH errors on Render
+  port: 587,
+  secure: false, // Use STARTTLS for Port 587
+  family: 4,    // FORCE IPv4 to avoid Render's IPv6 issues
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS,
@@ -14,17 +14,16 @@ const transporter = nodemailer.createTransport({
     rejectUnauthorized: false,
     minVersion: 'TLSv1.2'
   },
-  pool: true,
-  maxConnections: 3,
-  maxMessages: 100,
-  logger: true, // Enable logging to see the SMTP conversation
-  debug: true   // Enable debug output
+  connectionTimeout: 30000, // 30 seconds
+  greetingTimeout: 30000,
+  socketTimeout: 30000,
+  pool: false // Disable pooling for more reliable single-connection attempts
 });
 
 module.exports = {
   async sendEmail(to, subject, text, html, attachments = []) {
     if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
-      console.error('[Email ERROR] SMTP credentials not configured in .env');
+      console.error('[Email ERROR] SMTP credentials not configured');
       return { error: 'SMTP not configured' };
     }
 
@@ -40,7 +39,7 @@ module.exports = {
       console.log(`[Email SENT] To: ${to}, MessageId: ${info.messageId}`);
       return { success: true, messageId: info.messageId };
     } catch (err) {
-      console.error(`[Email ERROR] Details: ${err.stack || err.message}`);
+      console.error(`[Email ERROR] To: ${to}, Details: ${err.message}`);
       return { error: err.message };
     }
   },
@@ -54,8 +53,8 @@ module.exports = {
     
     console.log(`[Email Broadcast] Starting for ${uniqueEmails.length} recipients...`);
     
-    // Chunk size for concurrency control
-    const CHUNK_SIZE = 10;
+    // Reduced chunk size for stability on Render free tier
+    const CHUNK_SIZE = 2; 
     for (let i = 0; i < uniqueEmails.length; i += CHUNK_SIZE) {
       const chunk = uniqueEmails.slice(i, i + CHUNK_SIZE);
       const promises = chunk.map(email => this.sendEmail(email, subject, message, html, attachments));
@@ -66,6 +65,8 @@ module.exports = {
         else results.failure++;
       });
       
+      // Small delay between chunks to prevent connection hanging
+      await new Promise(r => setTimeout(r, 1000));
       console.log(`[Email Broadcast] Processed ${Math.min(i + CHUNK_SIZE, uniqueEmails.length)} / ${uniqueEmails.length}`);
     }
     
