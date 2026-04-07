@@ -10,7 +10,7 @@ let model = null;
 if (GEMINI_API_KEY) {
   console.log('✅ Gemini API Key detected. Initializing...');
   genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
-  model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+  model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
 } else {
   console.error('❌ GEMINI_API_KEY is missing from environment variables!');
 }
@@ -37,13 +37,11 @@ router.post('/', async (req, res) => {
     // Categorize events (excluding supportive teams from general lists)
     const upcomingEvents = allEvents
       .filter(e => (e.isSupportiveTeam !== true && e.isSupportiveTeam !== 'true') && new Date(e.date).setHours(23,59,59,999) >= now)
-      .sort((a, b) => new Date(a.date) - new Date(b.date))
-      .slice(0, 15);
+      .sort((a, b) => new Date(a.date) - new Date(b.date));
 
     const pastEvents = allEvents
       .filter(e => (e.isSupportiveTeam !== true && e.isSupportiveTeam !== 'true') && new Date(e.date).setHours(23,59,59,999) < now)
-      .sort((a, b) => new Date(b.date) - new Date(a.date))
-      .slice(0, 10);
+      .sort((a, b) => new Date(a.date) - new Date(b.date));
 
     const todayEvents = allEvents.filter(e => (e.isSupportiveTeam !== true && e.isSupportiveTeam !== 'true') && e.date === todayStr);
 
@@ -110,8 +108,20 @@ router.post('/', async (req, res) => {
     else if (input.includes('contact') || input.includes('technical support') || (input.includes('help') && !input.includes('event'))) {
       reply = "For technical issues, contact the admin at <b>bgmitcs034@gmail.com</b> (Contact: +91 6363338238) or visit the CSE Department.";
     }
-    else if (input.includes('register') || input.includes('sign up') || input.includes('signup') || input.includes('how to join')) {
+    else if (input.includes('register') || input.includes('sign up') || input.includes('signup') || input.includes('how to join') || input.includes('registration')) {
       reply = "To <b>Register</b> for an event:<br>1. Click the green <b>Upcoming Events</b> button on the home page.<br>2. Select your desired event.<br>3. Click <b>Register Now</b> and follow the steps (requires email OTP).";
+    }
+    else if (input.includes('certificate') || input.includes('cert') || input.includes('achievement')) {
+      reply = "<b>Certificates</b> are sent to your <b>registered email</b> after the event is completed and results are declared. You can also view your achievements by clicking 'My Signups' if you are logged in.";
+    }
+    else if (input.includes('upcoming') || input.includes('next event')) {
+        if (upcomingEvents.length > 0) {
+            reply = "Here are some <b>Upcoming Events</b>:<br>" + 
+                    upcomingEvents.map(e => `- <b>${e.title}</b> on ${e.date}`).join('<br>') + 
+                    "<br>Click the green <b>Upcoming Events</b> button for more details!";
+        } else {
+            reply = "There are no upcoming events scheduled at the moment. Please check back later!";
+        }
     }
 
     // FALLBACK TO GEMINI (Primary NLP engine)
