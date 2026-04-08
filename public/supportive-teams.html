@@ -100,8 +100,30 @@ header {
 
 @media(max-width:768px) {
   header { padding:0 16px; }
-  .container { padding: 20px 16px; }
-  .teams-grid { grid-template-columns: 1fr; }
+  .header-inner { height: 60px; }
+  .logo { font-size: 18px; }
+  .container { padding: 16px; }
+  .section { padding: 16px 0; }
+  .section-header { margin-bottom: 24px; }
+  .section-title { font-size: 22px; }
+  .teams-grid { grid-template-columns: 1fr; gap: 16px; }
+  .team-card-top { padding: 20px; }
+  .team-card h3 { font-size: 20px; }
+  .btn { padding: 12px 24px; font-size: 15px; width: 100%; justify-content: center; }
+  .btn-sm { width: auto; padding: 8px 16px; }
+  
+  .modal { width: 95%; max-height: 85vh; border-radius: 16px; }
+  .modal-hero { padding: 24px; }
+  .modal-hero h2 { font-size: 20px; }
+  .modal-body { padding: 20px; }
+  .form-group { margin-bottom: 16px; }
+  .form-group input, .form-group select { padding: 10px 12px; font-size: 14px; }
+  .role-option { padding: 12px 16px; }
+  
+  div[style*="grid-template-columns:1fr 1fr"] {
+    grid-template-columns: 1fr !important;
+    gap: 0 !important;
+  }
 }
 </style>
 </head>

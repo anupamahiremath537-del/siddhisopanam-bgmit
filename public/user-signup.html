@@ -111,8 +111,17 @@ body { background:var(--bg); color:var(--text); font-family:'Nunito',sans-serif;
 
 .error-msg { color: #dc2626; font-size: 13px; margin-top: 16px; text-align: center; font-family: 'Space Mono', monospace; display: none; }
 .success-msg { color: #16a34a; font-size: 14px; margin-top: 16px; text-align: center; font-weight: 700; display: none; }
-
 .spinner { display:inline-block; width:16px; height:16px; border:3px solid rgba(255,255,255,0.3); border-top-color:#fff; border-radius:50%; animation:spin .8s linear infinite }
+@keyframes spin{to{transform:rotate(360deg)}}
+
+@media(max-width:480px) {
+  .login-card { padding: 32px 24px; border-radius: 20px; }
+  .logo { font-size: 24px; }
+  .subtitle { margin-bottom: 24px; font-size: 13px; }
+  .back-home { top: 16px; left: 16px; font-size: 13px; }
+  .form-group { margin-bottom: 16px; }
+}
+</style>
 @keyframes spin{to{transform:rotate(360deg)}}
 
 @media (max-width: 480px) {

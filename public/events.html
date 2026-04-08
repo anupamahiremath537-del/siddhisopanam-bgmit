@@ -111,14 +111,37 @@ header {
 
 @media(max-width:768px) {
   header { padding:0 16px; }
-  .container { padding: 20px 16px; }
+  .header-inner { height: 60px; }
+  .logo { font-size: 18px; }
+  .container { padding: 16px; }
+  .section { padding: 16px 0; }
+  .section-header { margin-bottom: 24px; }
+  .section-title { font-size: 22px; }
   .events-grid { grid-template-columns: 1fr; gap: 16px; }
-  .section-title { font-size: 24px; }
-  .filters { gap: 12px; }
-  .filter-group { gap: 8px; overflow-x: auto; padding-bottom: 8px; width: 100%; white-space: nowrap; flex-wrap: nowrap; }
-  .filter-chip { padding: 6px 16px; font-size: 12px; }
-  .search-bar { padding: 12px 12px 12px 40px; font-size: 14px; }
   .event-card-top { padding: 20px; }
+  .event-card h3 { font-size: 20px; }
+  
+  .filters { gap: 12px; margin-bottom: 24px; }
+  .filter-group { 
+    gap: 8px; 
+    overflow-x: auto; 
+    padding-bottom: 8px; 
+    width: calc(100% + 32px); 
+    margin-left: -16px;
+    padding-left: 16px;
+    padding-right: 16px;
+    white-space: nowrap; 
+    flex-wrap: nowrap;
+    -webkit-overflow-scrolling: touch;
+  }
+  .filter-group::-webkit-scrollbar { display: none; }
+  .filter-chip { padding: 10px 20px; font-size: 13px; }
+  
+  .search-bar-container { margin-bottom: 24px; }
+  .search-bar { padding: 14px 16px 14px 44px; font-size: 15px; }
+  
+  .btn { padding: 12px 24px; font-size: 15px; width: 100%; justify-content: center; }
+  .btn-sm { width: auto; padding: 8px 16px; }
 }
 </style>
 </head>
