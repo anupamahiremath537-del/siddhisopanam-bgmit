@@ -223,8 +223,16 @@ router.post('/', authMiddleware, async (req, res) => {
     console.log('[Events API] Successfully created event:', event.id);
     res.status(201).json(event);
   } catch (err) {
-    console.error('❌ [Events API POST ERROR]', err.stack);
-    res.status(500).json({ error: err.message });
+    console.error('❌ [Events API POST ERROR]');
+    if (err.stack) console.error(err.stack);
+    else console.error(JSON.stringify(err, null, 2) || err);
+    
+    res.status(500).json({ 
+      error: 'Internal Server Error', 
+      message: err.message,
+      code: err.code,
+      details: err.details
+    });
   }
 });
 

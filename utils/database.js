@@ -170,19 +170,35 @@ const db = {
     }
     
     if (!payload.id) payload.id = uuidv4();
+    console.log(`[DB Debug] Inserting into ${collection} with payload keys:`, Object.keys(payload));
 
-    const { data, error } = await supabase.from(collection).insert(payload).select();
-    if (error) {
-      if (error.message.includes('column') || error.message.includes('cache')) {
-        await this.refreshSchema();
-        await new Promise(r => setTimeout(r, 200));
-        const { data: retryData, error: retryError } = await supabase.from(collection).insert(payload).select();
-        if (retryError) throw retryError;
-        return mapRecord(retryData ? retryData[0] : payload);
+    try {
+      const { data, error } = await supabase.from(collection).insert(payload).select();
+      if (error) {
+        console.error(`❌ [DB Error] collection=${collection} error=${error.message} code=${error.code} details=${error.details}`);
+        if (error.message.includes('column') || error.message.includes('cache')) {
+          console.log('[DB Info] Column error detected, refreshing schema...');
+          await this.refreshSchema();
+          await new Promise(r => setTimeout(r, 200));
+          const { data: retryData, error: retryError } = await supabase.from(collection).insert(payload).select();
+          if (retryError) {
+            const err = new Error(retryError.message);
+            err.code = retryError.code;
+            err.details = retryError.details;
+            throw err;
+          }
+          return mapRecord(retryData ? retryData[0] : payload);
+        }
+        const err = new Error(error.message);
+        err.code = error.code;
+        err.details = error.details;
+        throw err;
       }
-      throw error;
+      return mapRecord(data && data.length > 0 ? data[0] : payload);
+    } catch (unexpectedErr) {
+      console.error(`❌ [DB Unexpected Error] ${unexpectedErr.message}`);
+      throw unexpectedErr;
     }
-    return mapRecord(data ? data[0] : payload);
   },
 
   async update(collection, query, update, options = {}) {
