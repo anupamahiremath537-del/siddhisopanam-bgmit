@@ -20,53 +20,67 @@ router.get('/', async (req, res) => {
 
     // Fetch all non-deleted events and handle filtering/sorting in JS to avoid index issues
     console.log('[Events API] Fetching events...');
-    let events = await db.find('events', { status: { $ne: 'deleted' } });
-    console.log(`[Events API] Found ${events.length} events.`);
+    let rawEvents = await db.find('events', { status: { $ne: 'deleted' } });
+    let events = rawEvents.filter(e => e !== null);
+    console.log(`[Events API] Found ${events.length} valid events (out of ${rawEvents.length} raw).`);
     
     // Filter by results status if requested
     if (req.query.hasResults === 'true') {
-      events = events.filter(e => e.results && Object.keys(e.results).length > 0);
+      console.log('[Events API] Filtering by hasResults...');
+      events = events.filter(e => e.results && typeof e.results === 'object' && Object.keys(e.results).length > 0);
     }
 
     // Filter by supportive team status
     if (req.query.isSupportiveTeam === 'true') {
+      console.log('[Events API] Filtering by isSupportiveTeam=true...');
       events = events.filter(e => e.isSupportiveTeam === true || e.isSupportiveTeam === 'true');
     } else if (req.query.isSupportiveTeam === 'false') {
+      console.log('[Events API] Filtering by isSupportiveTeam=false...');
       events = events.filter(e => e.isSupportiveTeam !== true && e.isSupportiveTeam !== 'true');
     }
     
     if (user && user.role === 'organizer') {
+      console.log(`[Events API] Filtering for organizer: ${user.username}`);
       events = events.filter(e => e.createdBy === user.username);
     }
-    // Admin sees all events including creator info (already in `createdBy` field)
 
     // Sort by date ascending
-    events.sort((a, b) => new Date(a.date) - new Date(b.date));
+    console.log('[Events API] Sorting events...');
+    events.sort((a, b) => {
+      const da = a.date ? new Date(a.date) : new Date(0);
+      const db = b.date ? new Date(b.date) : new Date(0);
+      return da - db;
+    });
 
     if (events.length === 0) {
+      console.log('[Events API] No events after filtering.');
       return res.json([]);
     }
 
     // Optimize: Fetch all registrations for these events in ONE go
     const eventIds = events.map(e => e.eventId || e.id).filter(id => id);
-    console.log('[Events API] Fetching registrations for eventIds:', eventIds);
-    const allRegs = await db.find('registrations', { 
+    console.log('[Events API] Fetching registrations for eventIds count:', eventIds.length);
+    const rawAllRegs = await db.find('registrations', { 
       eventId: { $in: eventIds }, 
       status: { $ne: 'cancelled' } 
     });
-    console.log(`[Events API] Found ${allRegs.length} registrations.`);
+    const allRegs = rawAllRegs.filter(r => r !== null);
+    console.log(`[Events API] Found ${allRegs.length} valid registrations.`);
 
     // Group registrations by eventId for fast lookup
     const regsByEvent = {};
     allRegs.forEach(r => {
-      if (!regsByEvent[r.eventId]) regsByEvent[r.eventId] = [];
-      regsByEvent[r.eventId].push(r);
+      const eid = r.eventId;
+      if (eid) {
+        if (!regsByEvent[eid]) regsByEvent[eid] = [];
+        regsByEvent[eid].push(r);
+      }
     });
 
     // Attach slot info
     console.log('[Events API] Enriching events with registration counts...');
     const enriched = events.map(ev => {
-      const regs = regsByEvent[ev.eventId] || [];
+      const regs = regsByEvent[ev.eventId] || regsByEvent[ev.id] || [];
       const volunteerRegs = regs.filter(r => r.type === 'volunteer');
       const participantRegs = regs.filter(r => r.type === 'participant');
       const roles = (ev.volunteerRoles || []).map(role => {
