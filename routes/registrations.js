@@ -690,35 +690,38 @@ router.post('/broadcast-certificates', authMiddleware, async (req, res) => {
 
 // GET /api/registrations/all - Admin: all registrations
 router.get('/all', authMiddleware, async (req, res) => {
+  console.log(`\n🔍 [Registrations API] GET /all - User: ${req.user.username}`);
   try {
     const { eventId, organizer, category, startDate, endDate, type } = req.query;
     let query = {};
     
     // If organizer, restrict to their events
     if (req.user.role === 'organizer') {
+      console.log('[Registrations API] Filtering for organizer events...');
       const myEvents = await db.find('events', { createdBy: req.user.username });
       const myEventIds = myEvents.map(e => e.eventId).filter(id => id);
+      console.log(`[Registrations API] Organizer has ${myEventIds.length} events.`);
+      
       if (myEventIds.length === 0) {
-        // Handle CSV output for empty events
-        if (req.path.includes('/csv')) {
-           res.setHeader('Content-Type', 'text/csv');
-           res.setHeader('Content-Disposition', 'attachment; filename="registrations.csv"');
-           return res.send('No registrations found');
-        }
+        console.log('[Registrations API] Organizer has no events. Returning empty list.');
         return res.json([]);
       }
       query.eventId = { $in: myEventIds };
     } else if (organizer) {
       // Admin filtering by organizer
+      console.log(`[Registrations API] Admin filtering by organizer: ${organizer}`);
       const orgEvents = await db.find('events', { createdBy: organizer });
-      const orgEventIds = orgEvents.map(e => e.eventId);
+      const orgEventIds = orgEvents.map(e => e.eventId).filter(id => id);
+      if (orgEventIds.length === 0) return res.json([]);
       query.eventId = { $in: orgEventIds };
     }
 
     if (eventId) query.eventId = eventId;
     if (type && type !== 'all') query.type = type;
 
+    console.log('[Registrations API] Fetching registrations from DB...');
     let regs = await db.find('registrations', query, { registeredAt: -1 });
+    console.log(`[Registrations API] Found ${regs.length} registrations.`);
     
     // Fetch events to filter by category and date if needed
     const allEventsMap = {};
@@ -727,6 +730,7 @@ router.get('/all', authMiddleware, async (req, res) => {
 
     // Filter by Category and Date on the results
     if (category || startDate || endDate) {
+      console.log('[Registrations API] Applying category/date filters...');
       regs = regs.filter(r => {
         const ev = allEventsMap[r.eventId];
         if (!ev) return false;
@@ -744,32 +748,32 @@ router.get('/all', authMiddleware, async (req, res) => {
       return { ...r, eventTitle: event?.title, eventCategory: event?.category, eventDate: event?.date };
     });
 
+    console.log('[Registrations API] Returning enriched registrations.');
     res.json(enriched);
   } catch (err) {
+    console.error('❌ [REGISTRATIONS API ERROR]', err.stack);
     res.status(500).json({ error: err.message });
   }
 });
 
 // GET /api/registrations/swap-requests - Admin: pending swaps
 router.get('/swap-requests', authMiddleware, async (req, res) => {
+  console.log(`\n🔍 [Swap Requests API] GET /swap-requests - User: ${req.user.username}`);
   try {
     let query = { swapRequested: true };
     if (req.user.role === 'organizer') {
       const myEvents = await db.find('events', { createdBy: req.user.username });
       const myEventIds = myEvents.map(e => e.eventId).filter(id => id);
       if (myEventIds.length === 0) {
-        // Handle CSV output for empty events
-        if (req.path.includes('/csv')) {
-           res.setHeader('Content-Type', 'text/csv');
-           res.setHeader('Content-Disposition', 'attachment; filename="registrations.csv"');
-           return res.send('No registrations found');
-        }
+        console.log('[Swap Requests API] Organizer has no events. Returning empty list.');
         return res.json([]);
       }
       query.eventId = { $in: myEventIds };
     }
 
+    console.log('[Swap Requests API] Fetching swap requests from DB...');
     const regs = await db.find('registrations', query, { swapRequestedAt: -1 });
+    console.log(`[Swap Requests API] Found ${regs.length} requests.`);
 
     // Optimize: Fetch all relevant events in ONE go
     const eventIds = [...new Set(regs.map(r => r.eventId))];
@@ -782,8 +786,10 @@ router.get('/swap-requests', authMiddleware, async (req, res) => {
       const newRole = (event?.volunteerRoles || []).find(rl => rl.id === r.swapRequestedRoleId);
       return { ...r, eventTitle: event?.title, requestedRoleName: newRole?.name };
     });
+    console.log('[Swap Requests API] Returning enriched requests.');
     res.json(enriched);
   } catch (err) {
+    console.error('❌ [SWAP REQUESTS API ERROR]', err.stack);
     res.status(500).json({ error: err.message });
   }
 });
