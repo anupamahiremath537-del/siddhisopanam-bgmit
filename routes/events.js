@@ -181,24 +181,31 @@ router.get('/:eventId', async (req, res) => {
 
 // POST /api/events - Admin: create event
 router.post('/', authMiddleware, async (req, res) => {
+  console.log('\n🚀 [Events API] POST / - Creating new event');
+  console.log('[Events API] User:', req.user.username);
   try {
     // Check approval
     if (req.user.role === 'organizer' && req.user.approved === false) {
+      console.log('[Events API] Creation blocked: Organizer not approved.');
       return res.status(403).json({ error: 'Your account is pending approval. You cannot create events yet.' });
     }
 
     const { title, date, time, endTime, location, description, participantLimit, volunteerRoles, category, teamSize, teamMode, scope, isSupportiveTeam } = req.body;
-    if (!title || !date || !time || !location) return res.status(400).json({ error: 'Title, date, time, location are required' });
+    console.log('[Events API] Received body:', { title, date, category });
+    
+    if (!title || !date || !time || !location) {
+      console.log('[Events API] Validation failed: missing required fields.');
+      return res.status(400).json({ error: 'Title, date, time, location are required' });
+    }
 
     const eventId = uuidv4();
     const baseUrl = process.env.BASE_URL || 'https://siddhisopanam-bgmit.onrender.com';
     const signupUrl = `${baseUrl}/signup/${eventId}`;
 
-    const roles = (volunteerRoles || []).map(r => ({ ...r, id: r.id || uuidv4() }));
-
+    const roles = (Array.isArray(volunteerRoles) ? volunteerRoles : []).map(r => ({ ...r, id: r.id || uuidv4() }));
     const isSupTeam = isSupportiveTeam === true || isSupportiveTeam === 'true';
 
-    const event = await db.insert('events', {
+    const eventData = {
       eventId, title, date, time, endTime: endTime || '', location, description: description || '',
       participantLimit: parseInt(participantLimit) || 100,
       volunteerRoles: roles, category: category || 'General',
@@ -209,9 +216,14 @@ router.post('/', authMiddleware, async (req, res) => {
       signupUrl, status: 'active',
       registrationStatus: 'open',
       createdAt: new Date(), createdBy: req.user.username,
-    });
+    };
+
+    console.log('[Events API] Inserting into DB...');
+    const event = await db.insert('events', eventData);
+    console.log('[Events API] Successfully created event:', event.id);
     res.status(201).json(event);
   } catch (err) {
+    console.error('❌ [Events API POST ERROR]', err.stack);
     res.status(500).json({ error: err.message });
   }
 });
