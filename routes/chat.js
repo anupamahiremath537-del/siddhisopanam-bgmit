@@ -111,8 +111,11 @@ router.post('/', async (req, res) => {
     else if (input.includes('register') || input.includes('sign up') || input.includes('signup') || input.includes('how to join') || input.includes('registration')) {
       reply = "To <b>Register</b> for an event:<br>1. Click the green <b>Upcoming Events</b> button on the home page.<br>2. Select your desired event.<br>3. Click <b>Register Now</b> and follow the steps (requires email OTP).";
     }
+    else if (input.includes('swap') || input.includes('transfer')) {
+      reply = "To <b>Swap</b> or <b>Transfer</b> your registration:<br>1. Click the <b>My Sign Ups of Events</b> button on the home page.<br>2. Enter your registered email and click <b>View My Sign Ups</b>.<br>3. Find your event and click the <b>Transfer / Swap</b> button.<br>4. Fill in the details (new person's info) and verify with OTP.";
+    }
     else if (input.includes('certificate') || input.includes('cert') || input.includes('achievement')) {
-      reply = "<b>Certificates</b> are sent to your <b>registered email</b> after the event is completed and results are declared. You can also view your achievements by clicking 'My Signups' if you are logged in.";
+      reply = "<b>Certificates</b> are sent to your <b>registered email</b> after the event is completed and results are declared. You can also view your achievements by clicking 'My Sign Ups of Events' if you are logged in.";
     }
     else if (input.includes('upcoming') || input.includes('next event')) {
         if (upcomingEvents.length > 0) {
@@ -154,8 +157,9 @@ USER PROFILE:
 PLATFORM NAVIGATION & RULES:
 1. Register for Events: Click "Upcoming Events" (green button) -> "Register Now". Requires Email OTP.
 2. Join Supportive Teams: Click "Supportive Teams" (blue outline button) -> "Join Team". Requires Email OTP.
-3. Certificates: Sent to your REGISTERED EMAIL only after event completion. NOT downloadable.
-4. Team Events: Leader creates team (name/password), members join with same name/password.
+3. Swap/Transfer Registration: Click "My Sign Ups of Events" (blue button in hero) -> "View My Sign Ups" -> "Transfer / Swap". Requires OTP for the new person.
+4. Certificates: Sent to your REGISTERED EMAIL only after event completion. NOT downloadable.
+5. Team Events: Leader creates team (name/password), members join with same name/password.
 
 INSTRUCTIONS:
 - Be concise (2-4 sentences).
