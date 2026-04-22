@@ -2276,9 +2276,9 @@ async function broadcastCertificates() {
   let msg = 'Are you sure you want to broadcast certificates?';
   if (evId) {
     const event = allEvents.find(e => e.eventId === evId);
-    msg = `Are you sure you want to broadcast certificates for "${event?.title}"?`;
+    msg = `Are you sure you want to broadcast certificates to ALL registered users for "${event?.title}"?`;
   } else {
-    msg = 'Are you sure you want to broadcast certificates for ALL matching confirmed registrations?';
+    msg = 'Are you sure you want to broadcast certificates to ALL matching registered users (including supportive teams and events)?';
   }
 
   if (!confirm(msg)) return;

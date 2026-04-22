@@ -76,11 +76,11 @@ router.get('/csv', authMiddleware, async (req, res) => {
       });
     }
 
-    const rows = [['Event', 'Organizer', 'Category', 'Name', 'Email', 'USN', 'Phone', 'Type', 'Role / Event', 'Team Name', 'Status', 'Registered At', 'Check-in']];
+    const rows = [['Event', 'Organizer', 'Category', 'Name', 'Email', 'USN', 'Phone', 'Type', 'Role', 'Team Name', 'Status', 'Registered At', 'Check-in']];
     
     regs.forEach(r => {
       const event = allEventsMap[r.eventId];
-      const roleOrEvent = r.type === 'volunteer' ? (r.roleName || '') : (event?.title || '');
+      const roleInfo = r.type === 'volunteer' ? (r.roleName || 'Volunteer') : '';
       rows.push([
         event?.title || 'Unknown', 
         event?.createdBy || 'Unknown',
@@ -90,7 +90,7 @@ router.get('/csv', authMiddleware, async (req, res) => {
         r.usn || '', 
         r.phone || '', 
         r.type, 
-        roleOrEvent, 
+        roleInfo, 
         r.teamName || '', 
         r.status, 
         new Date(r.registeredAt).toLocaleString(), 
@@ -208,13 +208,13 @@ router.post('/', async (req, res) => {
       if (filled >= role.slots) return res.status(409).json({ error: `No slots available for ${role.name}` });
     }
 
-    // Validate Team Details for Sports
+    // Validate Team Details
     let finalTeamName = '';
     let finalTeamMembers = [];
     if (type === 'participant') {
-      if (event.category === 'Sports' && event.teamMode === 'team') {
+      if (event.teamMode === 'team') {
         if (!teamDetails || !teamDetails.teamName) {
-          return res.status(400).json({ error: 'teamName required for team-based Sports event' });
+          return res.status(400).json({ error: 'teamName required for team-based event' });
         }
         finalTeamName = teamDetails.teamName.trim();
         
@@ -559,7 +559,7 @@ router.post('/broadcast', authMiddleware, async (req, res) => {
   })();
 });
 
-// POST /api/registrations/broadcast-certificates - Admin: send certificates to all confirmed registrations for an event
+// POST /api/registrations/broadcast-certificates - Admin: send certificates to all registered users (including supportive team and event registrars)
 router.post('/broadcast-certificates', authMiddleware, async (req, res) => {
   const { eventId, methods, organizer, category } = req.body;
   
@@ -597,12 +597,16 @@ router.post('/broadcast-certificates', authMiddleware, async (req, res) => {
 
     let registrations = await db.find('registrations', query);
     
-    // Filter to only those who are either confirmed OR checked-in
-    registrations = registrations.filter(r => r.status === 'confirmed' || r.checkedIn === true);
-
     const events = await db.find('events', { status: { $ne: 'deleted' } });
     const allEventsMap = {};
     events.forEach(e => allEventsMap[e.eventId] = e);
+
+    // Filter to include all non-cancelled registrations (including both supportive team and event registrars)
+    registrations = registrations.filter(r => {
+      const ev = allEventsMap[r.eventId];
+      if (!ev) return false;
+      return r.status !== 'cancelled';
+    });
 
     // Filter by Category on the results
     if (category) {
@@ -614,7 +618,7 @@ router.post('/broadcast-certificates', authMiddleware, async (req, res) => {
       });
     }
 
-    if (registrations.length === 0) return res.status(404).json({ error: 'No confirmed or checked-in registrations found matching the filters' });
+    if (registrations.length === 0) return res.status(404).json({ error: 'No registered users found matching the filters' });
 
     console.log(`[Cert Broadcast] Starting broadcast to ${registrations.length} registrations...`);
     res.status(202).json({ success: true, message: `Broadcasting certificates to ${registrations.length} registrations initiated` });
