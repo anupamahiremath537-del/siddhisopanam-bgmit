@@ -80,7 +80,8 @@ router.get('/csv', authMiddleware, async (req, res) => {
     
     regs.forEach(r => {
       const event = allEventsMap[r.eventId];
-      const roleInfo = r.type === 'volunteer' ? (r.roleName || 'Volunteer') : '';
+      // For volunteers, show their role; for participants, show the event title as context
+      const roleInfo = r.type === 'volunteer' ? (r.roleName || 'Volunteer') : (event?.title || '');
       rows.push([
         event?.title || 'Unknown', 
         event?.createdBy || 'Unknown',
