@@ -5,8 +5,7 @@ const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY;
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, {
-  auth: { persistSession: false, autoRefreshToken: false },
-  global: { headers: { 'x-application-name': 'eventvault' } }
+  auth: { persistSession: false, autoRefreshToken: false }
 });
 
 const normalizeField = key => {
@@ -31,23 +30,28 @@ const mapRecord = record => {
       finalValue = (value === true || value === 'true');
     }
     mapped[appKey] = finalValue;
-    if (appKey.toLowerCase() === 'id') mapped._id = finalValue;
+    if (appKey.toLowerCase() === 'id') { mapped._id = finalValue; mapped.id = finalValue; }
   }
   return mapped;
 };
 
 const db = {
+  // Added back to prevent server.js crashes
+  async refreshSchema() {
+    try {
+      await supabase.rpc('exec_sql', { sql: "NOTIFY pgrst, 'reload schema';" }).catch(() => {});
+    } catch (e) {}
+  },
+
   async findOne(collection, query, options = {}) {
     const docs = await this.find(collection, query, { ...options, limit: 1 });
     return docs.length > 0 ? docs[0] : null;
   },
 
   async find(collection, query = {}, options = {}) {
-    // 1. Force lowercase keys
     const normQuery = {};
     for (const [k, v] of Object.entries(query)) normQuery[normalizeField(k)] = v;
 
-    // 2. STRICTURE: Never fetch photo in lists
     let selectStr = options.select || '*';
     if (collection === 'registrations' && selectStr.includes('*') && !normQuery.id && !normQuery.registrationid) {
       selectStr = 'id,eventid,registrationid,name,email,phone,usn,type,roleid,rolename,teamname,status,checkedin,registeredat';
@@ -57,15 +61,28 @@ const db = {
     while (retries < 3) {
       try {
         let builder = supabase.from(collection).select(selectStr);
+        
         for (const [field, value] of Object.entries(normQuery)) {
-          if (typeof value === 'object' && value !== null) {
+          // RESTORE $OR SUPPORT
+          if (field === '$or' && Array.isArray(value)) {
+            const orStr = value.map(cond => {
+              const [k, v] = Object.entries(cond)[0];
+              const f = normalizeField(k);
+              if (v === null) return `${f}.is.null`;
+              return `${f}.eq.${v}`;
+            }).join(',');
+            builder = builder.or(orStr);
+          } 
+          else if (value && typeof value === 'object') {
             if (value.$in) builder = builder.in(field, value.$in);
             else if (value.$ne) builder = builder.neq(field, value.$ne);
             else builder = builder.eq(field, value);
           } else {
-            builder = builder.eq(field, value);
+            if (value === null) builder = builder.is(field, null);
+            else builder = builder.eq(field, value);
           }
         }
+
         if (options.sort) {
           for (const [k, v] of Object.entries(options.sort)) builder = builder.order(normalizeField(k), { ascending: v !== -1 });
         }
@@ -76,7 +93,6 @@ const db = {
         return (data || []).map(mapRecord);
       } catch (err) {
         retries++;
-        console.error(`❌ DB Retry ${retries}: ${err.message}`);
         if (retries >= 3) throw err;
         await new Promise(r => setTimeout(r, 1000 * retries));
       }
@@ -88,7 +104,15 @@ const db = {
     for (const [k, v] of Object.entries(query)) normQuery[normalizeField(k)] = v;
     let builder = supabase.from(collection).select('*', { count: 'exact', head: true });
     for (const [field, value] of Object.entries(normQuery)) {
-      if (value && value.$ne) builder = builder.neq(field, value.$ne);
+      if (field === '$or' && Array.isArray(value)) {
+        const orStr = value.map(cond => {
+          const [k, v] = Object.entries(cond)[0];
+          const f = normalizeField(k);
+          return `${f}.eq.${v}`;
+        }).join(',');
+        builder = builder.or(orStr);
+      }
+      else if (value && value.$ne) builder = builder.neq(field, value.$ne);
       else builder = builder.eq(field, value);
     }
     const { count, error } = await builder;
@@ -109,7 +133,7 @@ const db = {
     const p = {};
     const data = update.$set || update;
     for (const [k, v] of Object.entries(data)) if (k !== 'id') p[normalizeField(k)] = v;
-    const targetId = query.id || query._id;
+    const targetId = query.id || query._id || query.registrationId || query.registrationid;
     const { error } = await supabase.from(collection).update(p).eq('id', targetId);
     if (error) throw error;
     return 1;
