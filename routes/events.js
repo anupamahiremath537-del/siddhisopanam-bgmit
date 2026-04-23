@@ -23,21 +23,21 @@ router.get('/', async (req, res) => {
     }
 
     console.log('[Events API] Step 1: Fetching events from DB...');
-    const query = { status: { $ne: 'deleted' } };
-    if (req.query.isSupportiveTeam === 'true') {
-      query.isSupportiveTeam = true;
-    } else if (req.query.isSupportiveTeam === 'false') {
-      // Use $or to include both false and null/undefined values
-      query.$or = [{ isSupportiveTeam: false }, { isSupportiveTeam: null }];
+    // FAIL-SAFE: Fetch all non-deleted events and filter in memory to avoid complex query errors
+    let events = await db.find('events', { status: { $ne: 'deleted' } });
+    if (!Array.isArray(events)) {
+      console.error('[Events API] DB returned non-array for events:', typeof events);
+      events = [];
     }
-
-    let rawEvents = await db.find('events', query);
-    if (!Array.isArray(rawEvents)) {
-      console.error('[Events API] DB returned non-array for events:', typeof rawEvents);
-      rawEvents = [];
-    }
-    let events = rawEvents.filter(e => e !== null);
+    events = events.filter(e => e !== null);
     console.log(`[Events API] Step 1 Complete: Found ${events.length} valid events.`);
+
+    // Step 1b: Apply filters in memory (Safe & Fast for small tables)
+    if (req.query.isSupportiveTeam === 'true') {
+      events = events.filter(e => e.isSupportiveTeam === true || e.isSupportiveTeam === 'true');
+    } else if (req.query.isSupportiveTeam === 'false') {
+      events = events.filter(e => e.isSupportiveTeam !== true && e.isSupportiveTeam !== 'true');
+    }
     
     if (req.query.hasResults === 'true') {
       console.log('[Events API] Step 2: Filtering by hasResults...');
