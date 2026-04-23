@@ -81,7 +81,6 @@ async function seedAdmin() {
 
   while (retries <= maxRetries) {
     try {
-      await db.refreshSchema();
       const adminUser = process.env.SEED_ADMIN_USERNAME;
       const adminPass = process.env.SEED_ADMIN_PASSWORD;
       if (!adminUser || !adminPass) {
