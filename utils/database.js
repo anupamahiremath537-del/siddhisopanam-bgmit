@@ -79,12 +79,9 @@ const mapRecord = record => {
   for (const [key, value] of Object.entries(record)) {
     const appKey = fieldMap[key.toLowerCase()] || key;
     let finalValue = value;
-    
-    // Normalize boolean-like values for known boolean fields
     if (['isSupportiveTeam', 'checkedIn', 'noShow', 'swapRequested'].includes(appKey)) {
       finalValue = (value === true || value === 'true');
     }
-
     if (appKey.toLowerCase() === 'id') {
       mapped._id = finalValue;
       mapped.id = finalValue;
@@ -95,15 +92,20 @@ const mapRecord = record => {
   return mapped;
 };
 
+let lastSchemaRefresh = 0;
+const REFRESH_COOLDOWN = 60000; // 1 minute cooldown
+const simpleCache = new Map();
+
 const db = {
   async refreshSchema() {
+    const now = Date.now();
+    if (now - lastSchemaRefresh < REFRESH_COOLDOWN) return;
+    lastSchemaRefresh = now;
     try {
       console.log('[DB Info] Refreshing PostgREST schema cache...');
-      // Use a direct SQL notify if possible, but keep it silent if it fails
-      const { error } = await supabase.rpc('exec_sql', { sql: "NOTIFY pgrst, 'reload schema';" });
-      if (error) console.warn('[DB Warning] Schema refresh RPC failed (expected during cache issues):', error.message);
+      await supabase.rpc('exec_sql', { sql: "NOTIFY pgrst, 'reload schema';" });
     } catch (e) {
-      // ignore
+      console.warn('[DB Warning] Schema refresh failed:', e.message);
     }
   },
 
@@ -113,21 +115,26 @@ const db = {
   },
 
   async find(collection, query = {}, options = {}) {
+    // Basic cache for events to reduce load
+    const cacheKey = collection === 'events' ? `find:${collection}:${JSON.stringify(query)}:${JSON.stringify(options)}` : null;
+    if (cacheKey && simpleCache.has(cacheKey)) {
+      const entry = simpleCache.get(cacheKey);
+      if (Date.now() - entry.time < 30000) return entry.data;
+    }
+
     let retries = 0;
-    const maxRetries = 4; // Increased retries
+    const maxRetries = 4;
     const selectStr = options.select || '*';
 
     while (retries <= maxRetries) {
       let builder = supabase.from(collection).select(selectStr);
       const regexFilters = [];
       
-      // ... same logic for building query ...
       for (const [key, value] of Object.entries(query)) {
         if (value instanceof RegExp) {
           regexFilters.push({ key, value });
           continue;
         }
-        
         const field = normalizeField(key);
         if (key === '$or' && Array.isArray(value)) {
           const orConditions = value.map(cond => {
@@ -137,7 +144,6 @@ const db = {
             if (typeof subVal === 'object' && subVal !== null) {
               if (subVal.$ne !== undefined) return subVal.$ne === null ? `${subField}.not.is.null` : `${subField}.neq.${subVal.$ne}`;
               if (subVal.$eq !== undefined) return subVal.$eq === null ? `${subField}.is.null` : `${subField}.eq.${subVal.$eq}`;
-              return `${subField}.eq.${subVal}`;
             }
             return `${subField}.eq.${subVal}`;
           }).join(',');
@@ -181,7 +187,6 @@ const db = {
 
       try {
         const { data, error } = await builder;
-        
         if (!error) {
           let results = (data || []).map(mapRecord);
           if (regexFilters.length > 0) {
@@ -189,77 +194,57 @@ const db = {
               results = results.filter(doc => doc[key] && value.test(doc[key]));
             }
           }
+          if (cacheKey) simpleCache.set(cacheKey, { data: results, time: Date.now() });
           return results;
         }
 
         console.error(`❌ [DB Error] Attempt ${retries + 1}/${maxRetries + 1} collection=${collection} error=${error.message} code=${error.code}`);
         
-        // Handle common transient errors
         if (error.code === 'PGRST002' || error.message.includes('cache') || error.code === '57014' || error.message.includes('timeout')) {
           retries++;
           if (retries <= maxRetries) {
-            const delay = Math.pow(2, retries) * 1000; // Exponential backoff: 2s, 4s, 8s, 16s
-            console.warn(`[DB Warning] Transient error detected. Refreshing schema and retrying in ${delay}ms...`);
-            
-            // Try to refresh schema but don't wait for it to finish if it's slow
+            const delay = Math.pow(2, retries) * 1000;
+            console.warn(`[DB Warning] Transient error detected. Retrying in ${delay}ms...`);
             this.refreshSchema().catch(() => {});
-            
             await new Promise(r => setTimeout(r, delay));
             continue;
           }
         }
-        
         const err = new Error(error.message);
         err.code = error.code;
         throw err;
       } catch (catchErr) {
         if (retries >= maxRetries) throw catchErr;
         retries++;
-        const delay = Math.pow(2, retries) * 1000;
-        await new Promise(r => setTimeout(r, delay));
+        await new Promise(r => setTimeout(r, Math.pow(2, retries) * 1000));
       }
     }
   },
 
   async insert(collection, doc) {
     const payload = {};
-    for (const [k, v] of Object.entries(doc)) {
-      payload[normalizeField(k)] = v;
-    }
-    
+    for (const [k, v] of Object.entries(doc)) payload[normalizeField(k)] = v;
     if (!payload.id) payload.id = uuidv4();
-    console.log(`[DB Debug] Inserting into ${collection} with payload keys:`, Object.keys(payload));
 
     try {
       const { data, error } = await supabase.from(collection).insert(payload).select();
       if (error) {
-        console.error(`❌ [DB Error] collection=${collection} error=${error.message} code=${error.code} details=${error.details}`);
         if (error.message.includes('column') || error.message.includes('cache')) {
-          console.log('[DB Info] Column error detected, refreshing schema...');
           await this.refreshSchema();
-          await new Promise(r => setTimeout(r, 200));
+          await new Promise(r => setTimeout(r, 500));
           const { data: retryData, error: retryError } = await supabase.from(collection).insert(payload).select();
-          if (retryError) {
-            const err = new Error(retryError.message);
-            err.code = retryError.code;
-            err.details = retryError.details;
-            throw err;
-          }
+          if (retryError) throw retryError;
+          if (collection === 'events') simpleCache.clear();
           return mapRecord(retryData ? retryData[0] : payload);
         }
-        const err = new Error(error.message);
-        err.code = error.code;
-        err.details = error.details;
-        throw err;
+        throw error;
       }
+      if (collection === 'events') simpleCache.clear();
       return mapRecord(data && data.length > 0 ? data[0] : payload);
-    } catch (unexpectedErr) {
-      console.error(`❌ [DB Unexpected Error] ${unexpectedErr.message}`);
-      throw unexpectedErr;
-    }
+    } catch (e) { throw e; }
   },
 
-  async update(collection, query, update, options = {}) {
+  async update(collection, query, update) {
     const updateData = update.$set || update;
     const payload = {};
     for (const [k, v] of Object.entries(updateData)) {
@@ -269,28 +254,17 @@ const db = {
     let targetId = query._id || query.id;
     if (targetId) {
       const { error } = await supabase.from(collection).update(payload).eq('id', targetId);
-      if (error) {
-        if (error.message.includes('column') || error.message.includes('cache')) {
-          await this.refreshSchema();
-          await new Promise(r => setTimeout(r, 200));
-          const { error: retryError } = await supabase.from(collection).update(payload).eq('id', targetId);
-          if (retryError) throw retryError;
-          return 1;
-        }
-        throw error;
-      }
+      if (error && (error.message.includes('column') || error.message.includes('cache'))) {
+        await this.refreshSchema();
+        await new Promise(r => setTimeout(r, 500));
+        await supabase.from(collection).update(payload).eq('id', targetId);
+      } else if (error) throw error;
+      if (collection === 'events') simpleCache.clear();
       return 1;
     }
 
     const docs = await this.find(collection, query);
-    for (const doc of docs) {
-      const { error } = await supabase.from(collection).update(payload).eq('id', doc._id);
-      if (error && (error.message.includes('column') || error.message.includes('cache'))) {
-         await this.refreshSchema();
-         await new Promise(r => setTimeout(r, 200));
-         await supabase.from(collection).update(payload).eq('id', doc._id);
-      } else if (error) throw error;
-    }
+    for (const doc of docs) await this.update(collection, { id: doc._id }, payload);
     return docs.length;
   },
 
@@ -298,89 +272,55 @@ const db = {
     let targetId = query._id || query.id;
     if (targetId) {
       const { error } = await supabase.from(collection).delete().eq('id', targetId);
-      if (error) {
-         if (error.message.includes('column') || error.message.includes('cache')) {
-            await this.refreshSchema();
-            await new Promise(r => setTimeout(r, 200));
-            const { error: retryError } = await supabase.from(collection).delete().eq('id', targetId);
-            if (retryError) throw retryError;
-            return 1;
-         }
-         throw error;
-      }
+      if (error && (error.message.includes('column') || error.message.includes('cache'))) {
+        await this.refreshSchema();
+        await new Promise(r => setTimeout(r, 500));
+        await supabase.from(collection).delete().eq('id', targetId);
+      } else if (error) throw error;
+      if (collection === 'events') simpleCache.clear();
       return 1;
     }
     const docs = await this.find(collection, query);
-    for (const doc of docs) {
-      const { error } = await supabase.from(collection).delete().eq('id', doc._id);
-      if (error && (error.message.includes('column') || error.message.includes('cache'))) {
-         await this.refreshSchema();
-         await new Promise(r => setTimeout(r, 200));
-         await supabase.from(collection).delete().eq('id', doc._id);
-      } else if (error) throw error;
-    }
+    for (const doc of docs) await this.remove(collection, { id: doc._id });
     return docs.length;
   },
 
   async count(collection, query) {
-    let builder = supabase.from(collection).select('*', { count: 'exact', head: true });
-    
-    for (const [key, value] of Object.entries(query)) {
-      const field = normalizeField(key);
-      if (key === '$or' && Array.isArray(value)) {
-        const orConditions = value.map(cond => {
-          const [subKey, subVal] = Object.entries(cond)[0];
-          const subField = normalizeField(subKey);
-          
-          if (subVal === null) return `${subField}.is.null`;
-          
-          if (typeof subVal === 'object' && subVal !== null) {
-            if (subVal.$ne !== undefined) {
-              return subVal.$ne === null ? `${subField}.not.is.null` : `${subField}.neq.${subVal.$ne}`;
-            }
-            if (subVal.$eq !== undefined) {
-              return subVal.$eq === null ? `${subField}.is.null` : `${subField}.eq.${subVal.$eq}`;
-            }
+    let retries = 0;
+    const maxRetries = 3;
+    while (retries <= maxRetries) {
+      let builder = supabase.from(collection).select('*', { count: 'exact', head: true });
+      for (const [key, value] of Object.entries(query)) {
+        const field = normalizeField(key);
+        if (key === '$or' && Array.isArray(value)) {
+          const orConditions = value.map(cond => {
+            const [subKey, subVal] = Object.entries(cond)[0];
+            const subField = normalizeField(subKey);
+            if (subVal === null) return `${subField}.is.null`;
             return `${subField}.eq.${subVal}`;
-          }
-          return `${subField}.eq.${subVal}`;
-        }).join(',');
-        builder = builder.or(orConditions);
-      } else if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
-        if (value.$ne !== undefined) {
-          if (value.$ne === null) builder = builder.not(field, 'is', null);
-          else builder = builder.not(field, 'eq', value.$ne);
+          }).join(',');
+          builder = builder.or(orConditions);
+        } else if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+          if (value.$ne !== undefined) builder = builder.not(field, 'eq', value.$ne);
+          else if (value.$in !== undefined) builder = builder.in(field, value.$in);
+          else builder = builder.eq(field, value);
+        } else {
+          if (value === null) builder = builder.is(field, null);
+          else builder = builder.eq(field, value);
         }
-        else if (value.$in !== undefined) {
-          const nonNullValues = value.$in.filter(v => v !== null);
-          const hasNull = value.$in.includes(null);
-          
-          if (hasNull && nonNullValues.length > 0) {
-            builder = builder.or(`${field}.in.(${nonNullValues.join(',')}),${field}.is.null`);
-          } else if (hasNull) {
-            builder = builder.is(field, null);
-          } else {
-            builder = builder.in(field, nonNullValues);
-          }
-        }
-        else if (value.$gt !== undefined) builder = builder.gt(field, value.$gt);
-        else if (value.$lt !== undefined) builder = builder.lt(field, value.$lt);
-        else if (value.$gte !== undefined) builder = builder.gte(field, value.$gte);
-        else if (value.$lte !== undefined) builder = builder.lte(field, value.$lte);
-        else if (value.$eq !== undefined) {
-          if (value.$eq === null) builder = builder.is(field, null);
-          else builder = builder.eq(field, value.$eq);
-        }
-        else builder = builder.eq(field, value);
-      } else {
-        if (value === null) builder = builder.is(field, null);
-        else builder = builder.eq(field, value);
       }
+      const { count, error } = await builder;
+      if (!error) return count || 0;
+      if (error.code === 'PGRST002' || error.message.includes('cache')) {
+        retries++;
+        if (retries <= maxRetries) {
+          await this.refreshSchema();
+          await new Promise(r => setTimeout(r, Math.pow(2, retries) * 1000));
+          continue;
+        }
+      }
+      throw error;
     }
-
-    const { count, error } = await builder;
-    if (error) throw error;
-    return count || 0;
   }
 };
 
