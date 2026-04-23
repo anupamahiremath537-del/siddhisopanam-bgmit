@@ -59,8 +59,10 @@ router.get('/csv', authMiddleware, async (req, res) => {
 
     let regs = await db.find('registrations', query, { registeredAt: 1 });
     
+    // Fetch ONLY necessary events
+    const uniqueEventIds = [...new Set(regs.map(r => r.eventId).filter(id => id))];
+    const events = await db.find('events', { eventId: { $in: uniqueEventIds } });
     const allEventsMap = {};
-    const events = await db.find('events', { status: { $ne: 'deleted' } });
     events.forEach(e => allEventsMap[e.eventId] = e);
 
     // Filter by Category and Date on the results
@@ -308,10 +310,17 @@ router.get('/my', async (req, res) => {
     const { email } = req.query;
     if (!email) return res.status(400).json({ error: 'Email required' });
     const regs = await db.find('registrations', { email: email.toLowerCase(), status: { $ne: 'cancelled' } }, { registeredAt: -1 });
-    const enriched = await Promise.all(regs.map(async r => {
-      const event = await db.findOne('events', { eventId: r.eventId });
+    
+    // Fetch unique events in one query
+    const eventIds = [...new Set(regs.map(r => r.eventId).filter(id => id))];
+    const events = await db.find('events', { eventId: { $in: eventIds } });
+    const eventMap = {};
+    events.forEach(e => eventMap[e.eventId] = e);
+
+    const enriched = regs.map(r => {
+      const event = eventMap[r.eventId];
       return { ...r, event: event ? { title: event.title, date: event.date, time: event.time, location: event.location, volunteerRoles: event.volunteerRoles } : null };
-    }));
+    });
     res.json(enriched);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -528,7 +537,8 @@ router.post('/broadcast', authMiddleware, async (req, res) => {
       
       // Filter by Category on the results
       if (category) {
-        const events = await db.find('events', { status: { $ne: 'deleted' } });
+        const uniqueEventIds = [...new Set(registrations.map(r => r.eventId).filter(id => id))];
+        const events = await db.find('events', { eventId: { $in: uniqueEventIds } });
         const allEventsMap = {};
         events.forEach(e => allEventsMap[e.eventId] = e);
 
@@ -596,7 +606,9 @@ router.post('/broadcast-certificates', authMiddleware, async (req, res) => {
 
     let registrations = await db.find('registrations', query);
     
-    const events = await db.find('events', { status: { $ne: 'deleted' } });
+    // Fetch ONLY necessary events
+    const uniqueEventIds = [...new Set(registrations.map(r => r.eventId).filter(id => id))];
+    const events = await db.find('events', { eventId: { $in: uniqueEventIds } });
     const allEventsMap = {};
     events.forEach(e => allEventsMap[e.eventId] = e);
 
