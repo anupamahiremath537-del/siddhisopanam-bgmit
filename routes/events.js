@@ -63,59 +63,19 @@ router.get('/', async (req, res) => {
       return res.json([]);
     }
 
-    const eventIds = events.map(e => e.eventId || e.id).filter(id => id);
-    console.log(`[Events API] Step 7: Fetching registrations for ${eventIds.length} eventIds...`);
-    
-    let rawAllRegs = [];
-    try {
-      // CRITICAL OPTIMIZATION: Only fetch essential count fields to avoid timeouts
-      rawAllRegs = await db.find('registrations', 
-        { eventId: { $in: eventIds }, status: { $ne: 'cancelled' } },
-        { select: 'eventid,roleid,type' } 
-      );
-    } catch (dbErr) {
-      console.error('[Events API] Registration fetch failed:', dbErr.message);
-      // Continue without registration data rather than 500ing
-      rawAllRegs = [];
-    }
-    
-    const allRegs = Array.isArray(rawAllRegs) ? rawAllRegs.filter(r => r !== null) : [];
-    console.log(`[Events API] Step 7 Complete: Found ${allRegs.length} valid registrations.`);
-
-    console.log('[Events API] Step 8: Grouping registrations...');
-    const regsByEvent = {};
-    allRegs.forEach(r => {
-      const eid = r.eventId;
-      if (eid) {
-        if (!regsByEvent[eid]) regsByEvent[eid] = [];
-        regsByEvent[eid].push(r);
-      }
-    });
-
-    console.log('[Events API] Step 9: Enriching events with registration counts...');
+    // PERMANENT FIX: Counts are now pre-calculated in the SQL view
     const enriched = events.map(ev => {
-      try {
-        const regs = regsByEvent[ev.eventId] || regsByEvent[ev.id] || [];
-        const volunteerRegs = regs.filter(r => r.type === 'volunteer');
-        const participantRegs = regs.filter(r => r.type === 'participant');
-        
-        const roles = (Array.isArray(ev.volunteerRoles) ? ev.volunteerRoles : []).map(role => {
-          if (!role) return null;
-          const filled = volunteerRegs.filter(r => r.roleId === role.id).length;
-          const slots = parseInt(role.slots) || 0;
-          return { ...role, filled, remaining: Math.max(0, slots - filled) };
-        }).filter(r => r !== null);
-
-        return { 
-          ...ev, 
-          roles, 
-          participantCount: participantRegs.length, 
-          volunteerCount: volunteerRegs.length 
-        };
-      } catch (mapErr) {
-        console.error(`[Events API] Error enriching event ${ev.eventId || ev.id}:`, mapErr.message);
-        return ev; // Return unenriched event rather than crashing
-      }
+      return { 
+        ...ev, 
+        participantCount: parseInt(ev.participantCount) || 0, 
+        volunteerCount: parseInt(ev.volunteerCount) || 0,
+        // Map roles for UI compatibility
+        roles: (ev.volunteerRoles || []).map(role => ({
+          ...role,
+          filled: 0, // Individual role counts are handled on single event page
+          remaining: role.slots
+        }))
+      };
     });
 
     console.log('[Events API] Final Step: Sending JSON response.');

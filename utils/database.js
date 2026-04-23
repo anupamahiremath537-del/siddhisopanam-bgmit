@@ -115,14 +115,19 @@ const db = {
   },
 
   async find(collection, query = {}, options = {}) {
-    // Force ALL keys in query to be normalized/lowercased immediately
+    // PERMANENT FIX: Redirect main event listing to the optimized SQL view
+    let targetCollection = collection;
+    if (collection === 'events' && !query.eventId && !query.id) {
+      targetCollection = 'event_summary';
+    }
+
     const normalizedQuery = {};
     for (const [k, v] of Object.entries(query)) {
       normalizedQuery[normalizeField(k)] = v;
     }
 
     // Basic cache for events to reduce load
-    const cacheKey = collection === 'events' ? `find:${collection}:${JSON.stringify(normalizedQuery)}:${JSON.stringify(options)}` : null;
+    const cacheKey = targetCollection === 'event_summary' ? `find:${targetCollection}:${JSON.stringify(normalizedQuery)}:${JSON.stringify(options)}` : null;
     if (cacheKey && simpleCache.has(cacheKey)) {
       const entry = simpleCache.get(cacheKey);
       if (Date.now() - entry.time < 30000) return entry.data;
@@ -130,13 +135,20 @@ const db = {
 
     let retries = 0;
     const maxRetries = 4;
+    
+    // Safety: Forbid selecting 'photo' unless explicitly requested by ID
     let selectStr = options.select || '*';
+    if (targetCollection === 'registrations' && selectStr === '*' && !normalizedQuery.id && !normalizedQuery.registrationid) {
+      selectStr = 'id,eventid,registrationid,name,email,phone,usn,type,roleid,rolename,teamname,status,checkedin,registeredat';
+      console.log('[DB Info] Auto-excluding photo column for performance');
+    }
+
     if (selectStr !== '*') {
       selectStr = selectStr.split(',').map(f => normalizeField(f.trim())).join(',');
     }
 
     while (retries <= maxRetries) {
-      let builder = supabase.from(collection).select(selectStr);
+      let builder = supabase.from(targetCollection).select(selectStr);
       const regexFilters = [];
       
       for (const [field, value] of Object.entries(normalizedQuery)) {
