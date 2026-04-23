@@ -13,15 +13,14 @@ router.get('/check-limit', async (req, res) => {
     if (!email) return res.status(400).json({ error: 'Email required' });
     
     // Check active volunteer registrations for both email and USN
-    const activeRegs = await db.find('registrations', { 
+    const orConditions = [{ email: email.toLowerCase().trim() }];
+    if (usn) orConditions.push({ usn: usn.toLowerCase().trim() });
+
+    const volCount = await db.count('registrations', { 
       type: 'volunteer', 
-      status: { $ne: 'cancelled' } 
+      status: { $ne: 'cancelled' },
+      $or: orConditions
     });
-    
-    const volCount = activeRegs.filter(r => 
-      r.email.toLowerCase() === email.toLowerCase().trim() || 
-      (usn && r.usn && r.usn.toLowerCase() === usn.toLowerCase().trim())
-    ).length;
     
     res.json({ volCount });
   } catch (err) {
@@ -187,15 +186,14 @@ router.post('/', async (req, res) => {
     let roleName = '';
     if (type === 'volunteer') {
       // Restriction: A person cannot sign up for more than 2 events as a volunteer
-      const activeRegs = await db.find('registrations', { 
+      const orConditions = [{ email: email.toLowerCase().trim() }];
+      if (usn) orConditions.push({ usn: usn.toLowerCase().trim() });
+
+      const volCount = await db.count('registrations', { 
         type: 'volunteer', 
-        status: { $ne: 'cancelled' } 
+        status: { $ne: 'cancelled' },
+        $or: orConditions
       });
-      
-      const volCount = activeRegs.filter(r => 
-        r.email.toLowerCase() === email.toLowerCase().trim() || 
-        (usn && r.usn && r.usn.toLowerCase() === usn.toLowerCase().trim())
-      ).length;
       
       if (volCount >= 2) {
         return res.status(403).json({ error: 'You are already registered as volunteer for 2 events' });

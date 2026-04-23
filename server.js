@@ -99,23 +99,32 @@ async function seedAdmin() {
 async function sendDailyCSVReport() {
   console.log('[Scheduled Report] Generating automated CSV export...');
   try {
-    const regs = await db.find('registrations', { status: { $ne: 'cancelled' } });
+    const regs = await db.find('registrations', { status: { $ne: 'cancelled' } }, { registeredAt: -1 });
+    
+    // Fetch all events once to avoid N+1 queries
+    const events = await db.find('events', {});
+    const eventMap = {};
+    events.forEach(e => eventMap[e.eventId] = e);
+
     const rows = [['Event', 'Name', 'Email', 'USN', 'Phone', 'Type', 'Role', 'Team Name', 'Status', 'Registered At', 'Check-in']];
 
-    // Enrich with event titles
-    const enriched = await Promise.all(regs.map(async r => {
-      const event = await db.findOne('events', { eventId: r.eventId });
+    regs.forEach(r => {
+      const event = eventMap[r.eventId];
       const roleInfo = r.type === 'volunteer' ? (r.roleName || 'Volunteer') : '';
-      return {
-        data: [event?.title || 'Unknown', r.name, r.email, r.usn || '', r.phone || '', r.type, roleInfo, r.teamName || '', r.status, new Date(r.registeredAt).toLocaleString(), r.checkedIn ? 'Yes' : 'No'],
-        registeredAt: r.registeredAt
-      };
-    }));
-
-    // Sort by registration date descending
-    enriched.sort((a, b) => new Date(b.registeredAt) - new Date(a.registeredAt));
-
-    enriched.forEach(item => rows.push(item.data));
+      rows.push([
+        event?.title || 'Unknown', 
+        r.name, 
+        r.email, 
+        r.usn || '', 
+        r.phone || '', 
+        r.type, 
+        roleInfo, 
+        r.teamName || '', 
+        r.status, 
+        new Date(r.registeredAt).toLocaleString(), 
+        r.checkedIn ? 'Yes' : 'No'
+      ]);
+    });
 
     stringify(rows, async (err, output) => {
       if (err) return console.error('[Scheduled Report] CSV Error:', err);

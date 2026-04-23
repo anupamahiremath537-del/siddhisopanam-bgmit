@@ -118,7 +118,19 @@ const db = {
       }
       
       const field = normalizeField(key);
-      if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+      if (key === '$or' && Array.isArray(value)) {
+        const orConditions = value.map(cond => {
+          const [subKey, subVal] = Object.entries(cond)[0];
+          const subField = normalizeField(subKey);
+          if (typeof subVal === 'object' && subVal !== null) {
+            if (subVal.$ne !== undefined) return `${subField}.neq.${subVal.$ne}`;
+            if (subVal.$eq !== undefined) return `${subField}.eq.${subVal.$eq}`;
+            return `${subField}.eq.${subVal}`;
+          }
+          return `${subField}.eq.${subVal}`;
+        }).join(',');
+        builder = builder.or(orConditions);
+      } else if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
         if (value.$ne !== undefined) builder = builder.not(field, 'eq', value.$ne);
         else if (value.$in !== undefined) builder = builder.in(field, value.$in);
         else if (value.$gt !== undefined) builder = builder.gt(field, value.$gt);
@@ -266,8 +278,38 @@ const db = {
   },
 
   async count(collection, query) {
-    const docs = await this.find(collection, query);
-    return docs.length;
+    let builder = supabase.from(collection).select('*', { count: 'exact', head: true });
+    
+    for (const [key, value] of Object.entries(query)) {
+      const field = normalizeField(key);
+      if (key === '$or' && Array.isArray(value)) {
+        const orConditions = value.map(cond => {
+          const [subKey, subVal] = Object.entries(cond)[0];
+          const subField = normalizeField(subKey);
+          if (typeof subVal === 'object' && subVal !== null) {
+            if (subVal.$ne !== undefined) return `${subField}.neq.${subVal.$ne}`;
+            if (subVal.$eq !== undefined) return `${subField}.eq.${subVal.$eq}`;
+            return `${subField}.eq.${subVal}`;
+          }
+          return `${subField}.eq.${subVal}`;
+        }).join(',');
+        builder = builder.or(orConditions);
+      } else if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+        if (value.$ne !== undefined) builder = builder.not(field, 'eq', value.$ne);
+        else if (value.$in !== undefined) builder = builder.in(field, value.$in);
+        else if (value.$gt !== undefined) builder = builder.gt(field, value.$gt);
+        else if (value.$lt !== undefined) builder = builder.lt(field, value.$lt);
+        else if (value.$gte !== undefined) builder = builder.gte(field, value.$gte);
+        else if (value.$lte !== undefined) builder = builder.lte(field, value.$lte);
+        else builder = builder.eq(field, value);
+      } else {
+        builder = builder.eq(field, value);
+      }
+    }
+
+    const { count, error } = await builder;
+    if (error) throw error;
+    return count || 0;
   }
 };
 
