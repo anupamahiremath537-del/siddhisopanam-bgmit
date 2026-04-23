@@ -19,6 +19,7 @@ async function run() {
     CREATE INDEX IF NOT EXISTS idx_registrations_usn ON registrations(usn);
     CREATE INDEX IF NOT EXISTS idx_registrations_type ON registrations(type);
     CREATE INDEX IF NOT EXISTS idx_registrations_status ON registrations(status);
+    CREATE INDEX IF NOT EXISTS idx_registrations_registeredat ON registrations(registeredat);
     CREATE INDEX IF NOT EXISTS idx_registrations_registrationid ON registrations(registrationid);
     CREATE INDEX IF NOT EXISTS idx_registrations_roleid ON registrations(roleid);
     CREATE INDEX IF NOT EXISTS idx_registrations_teamname ON registrations(teamname);

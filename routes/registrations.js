@@ -748,10 +748,12 @@ router.get('/all', authMiddleware, async (req, res) => {
 
     console.log('[Registrations API] Fetching registrations from DB...');
     // Exclude 'photo' column for better performance and to avoid timeouts
+    // Added hard limit to prevent gateway timeouts on massive fetches
     const selectFields = 'id,eventid,registrationid,name,email,phone,usn,password,type,roleid,rolename,teamname,teammembers,status,checkedin,checkinat,registeredat,swaprequested,noshow,hoursvolunteered';
     let regs = await db.find('registrations', query, { 
       sort: { registeredAt: -1 },
-      select: selectFields
+      select: selectFields,
+      limit: 1000 
     });
     console.log(`[Registrations API] Found ${regs.length} registrations.`);
     
