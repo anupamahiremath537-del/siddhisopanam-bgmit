@@ -115,8 +115,14 @@ const db = {
   },
 
   async find(collection, query = {}, options = {}) {
+    // Force ALL keys in query to be normalized/lowercased immediately
+    const normalizedQuery = {};
+    for (const [k, v] of Object.entries(query)) {
+      normalizedQuery[normalizeField(k)] = v;
+    }
+
     // Basic cache for events to reduce load
-    const cacheKey = collection === 'events' ? `find:${collection}:${JSON.stringify(query)}:${JSON.stringify(options)}` : null;
+    const cacheKey = collection === 'events' ? `find:${collection}:${JSON.stringify(normalizedQuery)}:${JSON.stringify(options)}` : null;
     if (cacheKey && simpleCache.has(cacheKey)) {
       const entry = simpleCache.get(cacheKey);
       if (Date.now() - entry.time < 30000) return entry.data;
@@ -133,17 +139,18 @@ const db = {
       let builder = supabase.from(collection).select(selectStr);
       const regexFilters = [];
       
-      for (const [key, value] of Object.entries(query)) {
+      for (const [field, value] of Object.entries(normalizedQuery)) {
         if (value instanceof RegExp) {
-          regexFilters.push({ key, value });
+          regexFilters.push({ key: field, value });
           continue;
         }
-        const field = normalizeField(key);
-        if (key === '$or' && Array.isArray(value)) {
+        
+        if (field === '$or' && Array.isArray(value)) {
           const orConditions = value.map(cond => {
             const [subKey, subVal] = Object.entries(cond)[0];
             const subField = normalizeField(subKey);
             if (subVal === null) return `${subField}.is.null`;
+            
             if (typeof subVal === 'object' && subVal !== null) {
               if (subVal.$ne !== undefined) return subVal.$ne === null ? `${subField}.not.is.null` : `${subField}.neq.${subVal.$ne}`;
               if (subVal.$eq !== undefined) return subVal.$eq === null ? `${subField}.is.null` : `${subField}.eq.${subVal.$eq}`;
