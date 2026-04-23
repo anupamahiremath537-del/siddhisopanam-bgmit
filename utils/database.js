@@ -69,13 +69,17 @@ const db = {
               const [k, v] = Object.entries(cond)[0];
               const f = normalizeField(k);
               if (v === null) return `${f}.is.null`;
-              return `${f}.eq.${v}`;
+              if (typeof v === 'boolean') return `${f}.eq.${v}`;
+              return `${f}.eq."${v}"`; // Quote strings
             }).join(',');
             builder = builder.or(orStr);
           } 
           else if (value && typeof value === 'object') {
             if (value.$in) builder = builder.in(field, value.$in);
-            else if (value.$ne) builder = builder.neq(field, value.$ne);
+            else if (value.$ne) {
+              if (value.$ne === null) builder = builder.not(field, 'is', null);
+              else builder = builder.neq(field, value.$ne);
+            }
             else builder = builder.eq(field, value);
           } else {
             if (value === null) builder = builder.is(field, null);
@@ -108,12 +112,24 @@ const db = {
         const orStr = value.map(cond => {
           const [k, v] = Object.entries(cond)[0];
           const f = normalizeField(k);
-          return `${f}.eq.${v}`;
+          if (v === null) return `${f}.is.null`;
+          if (typeof v === 'boolean') return `${f}.eq.${v}`;
+          return `${f}.eq."${v}"`;
         }).join(',');
         builder = builder.or(orStr);
       }
-      else if (value && value.$ne) builder = builder.neq(field, value.$ne);
-      else builder = builder.eq(field, value);
+      else if (value && typeof value === 'object') {
+        if (value.$ne) {
+          if (value.$ne === null) builder = builder.not(field, 'is', null);
+          else builder = builder.neq(field, value.$ne);
+        }
+        else if (value.$in) builder = builder.in(field, value.$in);
+        else builder = builder.eq(field, value);
+      }
+      else {
+        if (value === null) builder = builder.is(field, null);
+        else builder = builder.eq(field, value);
+      }
     }
     const { count, error } = await builder;
     if (error) return 0;
