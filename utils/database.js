@@ -124,7 +124,10 @@ const db = {
 
     let retries = 0;
     const maxRetries = 4;
-    const selectStr = options.select || '*';
+    let selectStr = options.select || '*';
+    if (selectStr !== '*') {
+      selectStr = selectStr.split(',').map(f => normalizeField(f.trim())).join(',');
+    }
 
     while (retries <= maxRetries) {
       let builder = supabase.from(collection).select(selectStr);
