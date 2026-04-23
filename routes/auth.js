@@ -199,7 +199,8 @@ router.post('/login', async (req, res) => {
         return res.status(401).json({ error: 'Invalid admin credentials' });
       }
 
-      user = await db.findOne('users', { username: new RegExp(`^${username}$`, 'i') });
+      const escapedUsername = username.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      user = await db.findOne('users', { username: new RegExp(`^${escapedUsername}$`, 'i') });
       if (!user) return res.status(401).json({ error: 'Email is invalid' });
 
       // If it's the master organizer password, it works for any organizer

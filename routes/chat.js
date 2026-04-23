@@ -64,8 +64,12 @@ router.post('/', async (req, res) => {
 
     if (!mentionedItem) {
       mentionedItem = allItems.find(item => {
-        const words = item.title.toLowerCase().split(/\s+/);
-        return words.some(word => word.length > 3 && new RegExp(`\\b${word}\\b`, 'i').test(input));
+        const words = (item.title || '').toLowerCase().split(/\s+/);
+        return words.some(word => {
+          if (word.length <= 3) return false;
+          const escapedWord = word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+          return new RegExp(`\\b${escapedWord}\\b`, 'i').test(input);
+        });
       });
     }
 
