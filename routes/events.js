@@ -68,10 +68,11 @@ router.get('/', async (req, res) => {
     
     let rawAllRegs = [];
     try {
-      rawAllRegs = await db.find('registrations', { 
-        eventId: { $in: eventIds }, 
-        status: { $ne: 'cancelled' } 
-      });
+      // CRITICAL OPTIMIZATION: Only fetch essential count fields to avoid timeouts
+      rawAllRegs = await db.find('registrations', 
+        { eventId: { $in: eventIds }, status: { $ne: 'cancelled' } },
+        { select: 'eventid,roleid,type' } 
+      );
     } catch (dbErr) {
       console.error('[Events API] Registration fetch failed:', dbErr.message);
       // Continue without registration data rather than 500ing
