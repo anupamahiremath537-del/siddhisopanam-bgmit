@@ -63,20 +63,22 @@ router.get('/', async (req, res) => {
       return res.json([]);
     }
 
-    // PERMANENT FIX: Counts are now pre-calculated in the SQL view
-    const enriched = events.map(ev => {
+    // PERMANENT FIX: Fetch counts individually per event to avoid massive registration load
+    const enriched = await Promise.all(events.map(async ev => {
+      const pCount = await db.count('registrations', { eventId: ev.eventId, type: 'participant', status: { $ne: 'cancelled' } });
+      const vCount = await db.count('registrations', { eventId: ev.eventId, type: 'volunteer', status: { $ne: 'cancelled' } });
+      
+      const roles = (Array.isArray(ev.volunteerRoles) ? ev.volunteerRoles : []).map(role => {
+        return { ...role, filled: 0, remaining: role.slots }; // Basic role info
+      });
+
       return { 
         ...ev, 
-        participantCount: parseInt(ev.participantCount) || 0, 
-        volunteerCount: parseInt(ev.volunteerCount) || 0,
-        // Map roles for UI compatibility
-        roles: (ev.volunteerRoles || []).map(role => ({
-          ...role,
-          filled: 0, // Individual role counts are handled on single event page
-          remaining: role.slots
-        }))
+        roles, 
+        participantCount: pCount, 
+        volunteerCount: vCount 
       };
-    });
+    }));
 
     console.log('[Events API] Final Step: Sending JSON response.');
     res.json(enriched);
