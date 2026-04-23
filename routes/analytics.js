@@ -42,7 +42,7 @@ router.get('/overview', authMiddleware, async (req, res) => {
 
     // Volunteer coverage per event - Select minimal fields to avoid timeout
     let totalSlots = 0, filledSlots = 0;
-    const regFields = 'eventId,roleId,type';
+    const regFields = 'eventid,roleid,type';
     const regsForCoverage = await db.find('registrations', baseRegQuery, { select: regFields });
 
     activeEvents.forEach(ev => {
@@ -80,7 +80,7 @@ router.get('/events', authMiddleware, async (req, res) => {
     }
     
     // Minimal fields to avoid timeout
-    const regFields = 'eventId,roleId,type,status,checkedIn,noShow';
+    const regFields = 'eventid,roleid,type,status,checkedin,noshow';
     let regs = await db.find('registrations', regQuery, { select: regFields });
 
     const data = events.map(ev => {
