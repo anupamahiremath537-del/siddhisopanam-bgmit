@@ -13,7 +13,7 @@ const mapRecord = r => {
   const m = {};
   for (const [k, v] of Object.entries(r)) {
     const key = fieldMap[k.toLowerCase()] || k;
-    m[key] = (['isSupportiveTeam', 'checkedIn', 'noShow', 'swapRequested'].includes(key)) ? (v === true || v === 'true') : v;
+    m[key] = (['isSupportiveTeam', 'checkedIn', 'noShow', 'swapRequested', 'approved', 'approve'].includes(key)) ? (v === true || v === 'true') : v;
     if (key.toLowerCase() === 'id') m._id = v;
   }
   return m;
@@ -37,6 +37,13 @@ const db = {
       
       if (v && typeof v === 'object' && v.$in) b = b.in(f, v.$in);
       else if (v && typeof v === 'object' && v.$ne) b = b.neq(f, v.$ne);
+      else if (v instanceof RegExp) {
+        let pattern = v.source;
+        if (pattern.startsWith('^')) pattern = pattern.substring(1);
+        if (pattern.endsWith('$')) pattern = pattern.substring(0, pattern.length - 1);
+        pattern = pattern.replace(/\\(.)/g, '$1');
+        b = b.ilike(f, pattern);
+      }
       else b = b.eq(f, v);
     }
     if (options.sort) for (const [k, v] of Object.entries(options.sort)) b = b.order(normalizeField(k), { ascending: v !== -1 });
