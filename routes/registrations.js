@@ -126,7 +126,13 @@ router.get('/team-check', async (req, res) => {
     const { eventId, teamName, password } = req.query;
     if (!eventId || !teamName) return res.status(400).json({ error: 'Missing params' });
     
-    const event = await db.findOne('events', { eventId });
+    // Robust event lookup
+    const trimmedEventId = eventId.trim();
+    let event = await db.findOne('events', { eventId: trimmedEventId });
+    if (!event) {
+      event = await db.findOne('events', { id: trimmedEventId });
+    }
+
     if (!event) return res.status(404).json({ error: 'Event not found' });
 
     const existing = await db.find('registrations', { eventId, teamName, status: { $ne: 'cancelled' } });
@@ -158,9 +164,16 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ error: 'Photo size exceeds 100KB limit' });
     }
 
-    const event = await db.findOne('events', { eventId });
+    // Robust event lookup
+    const trimmedEventId = eventId.trim();
+    let event = await db.findOne('events', { eventId: trimmedEventId });
     if (!event) {
-      return res.status(404).json({ error: `Event with ID ${eventId} not found. Please go back to the home page and select a valid event.` });
+      console.log(`[Registrations API] Not found by eventId, trying fallback to primary id: ${trimmedEventId}`);
+      event = await db.findOne('events', { id: trimmedEventId });
+    }
+
+    if (!event) {
+      return res.status(404).json({ error: `Event with ID ${trimmedEventId} not found. Please go back to the home page and select a valid event.` });
     }
     if (event.status && event.status !== 'active') return res.status(404).json({ error: 'Event is not active.' });
     

@@ -91,13 +91,13 @@ body{background:var(--bg);color:var(--text);font-family:'Nunito',sans-serif;min-
 
 <script>
 let eventId = new URLSearchParams(window.location.search).get('id');
-if (!eventId) {
+if (!eventId || eventId === 'null') {
   const parts = window.location.pathname.split('/');
-  eventId = parts[parts.length - 1];
+  eventId = parts.filter(p => p && p !== 'choice' && p !== 'choice.html').pop();
 }
 
 async function init() {
-  if (!eventId || eventId === 'choice.html' || eventId === 'choice') {
+  if (!eventId || eventId === 'choice' || eventId === 'choice.html' || eventId === 'null') {
     document.getElementById('hero-title').textContent = 'Event not specified';
     return;
   }

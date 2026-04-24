@@ -9,7 +9,15 @@ const normalizeField = k => ({ eventId: 'eventid', registrationId: 'registration
 
 const mapRecord = r => {
   if (!r) return null;
-  const fieldMap = { eventid: 'eventId', registrationid: 'registrationId', roleid: 'roleId', issupportiveteam: 'isSupportiveTeam', checkedin: 'checkedIn', registeredat: 'registeredAt' };
+  const fieldMap = { 
+    eventid: 'eventId', 
+    registrationid: 'registrationId', 
+    roleid: 'roleId', 
+    issupportiveteam: 'isSupportiveTeam', 
+    checkedin: 'checkedIn', 
+    registeredat: 'registeredAt',
+    volunteerroles: 'volunteerRoles'
+  };
   const m = {};
   for (const [k, v] of Object.entries(r)) {
     const key = fieldMap[k.toLowerCase()] || k;
@@ -72,12 +80,29 @@ const db = {
     if (error) throw error;
     return mapRecord(data[0]);
   },
-  async update(collection, query, update) {
+  async update(collection, query, update, options = {}) {
     const p = {};
     const d = update.$set || update;
-    for (const [k, v] of Object.entries(d)) if (k !== 'id') p[normalizeField(k)] = v;
-    const targetId = query.id || query._id || query.registrationId || query.registrationid;
-    const { error } = await supabase.from(collection).update(p).eq('id', targetId);
+    for (const [k, v] of Object.entries(d)) if (k !== 'id' && k !== '_id') p[normalizeField(k)] = v;
+    
+    let b = supabase.from(collection).update(p);
+    
+    // Support multiple query fields
+    let hasQuery = false;
+    for (const [k, v] of Object.entries(query)) {
+      const f = normalizeField(k);
+      if (f === 'id' || f === '_id' || f === 'registrationid') {
+        b = b.eq('id', v);
+        hasQuery = true;
+      } else if (!f.startsWith('$')) {
+        b = b.eq(f, v);
+        hasQuery = true;
+      }
+    }
+
+    if (!hasQuery) throw new Error('Update requires a query');
+
+    const { error } = await b;
     if (error) throw error;
     return 1;
   },

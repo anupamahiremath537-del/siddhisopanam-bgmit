@@ -193,7 +193,14 @@ body{background:var(--bg);color:var(--text);font-family:'Nunito',sans-serif;min-
 </div>
 
 <script>
-const eventId = new URLSearchParams(window.location.search).get('id');
+let eventId = new URLSearchParams(window.location.search).get('id');
+if (!eventId || eventId === 'null') {
+  const parts = window.location.pathname.split('/');
+  // If URL is /signup/UUID, last part is UUID. 
+  // If URL is /signup/UUID/, last part might be empty.
+  eventId = parts.filter(p => p && p !== 'signup' && p !== 'signup.html').pop();
+}
+
 let selectedType = 'volunteer', selectedRoleId = null, eventData = null;
 
 function linkify(text) {
@@ -205,7 +212,14 @@ function linkify(text) {
 }
 
 async function init() {
+  if (!eventId || eventId === 'signup' || eventId === 'signup.html' || eventId === 'null') {
+    document.getElementById('hero-title').textContent = 'Event not specified';
+    console.error('No eventId found in URL');
+    return;
+  }
+  
   try {
+    console.log('Fetching event data for:', eventId);
     const r = await fetch(`/api/events/${eventId}`);
     if (!r.ok) {
       const contentType = r.headers.get('content-type');
