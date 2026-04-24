@@ -13,17 +13,40 @@ const mapRecord = r => {
     eventid: 'eventId', 
     registrationid: 'registrationId', 
     roleid: 'roleId', 
+    rolename: 'roleName',
+    teamname: 'teamName',
+    teammembers: 'teamMembers',
+    teamid: 'teamId',
     issupportiveteam: 'isSupportiveTeam', 
     checkedin: 'checkedIn', 
+    checkinat: 'checkedInAt',
     registeredat: 'registeredAt',
     volunteerroles: 'volunteerRoles',
     teammode: 'teamMode',
-    teamsize: 'teamSize'
+    teamsize: 'teamSize',
+    participantlimit: 'participantLimit',
+    registrationstatus: 'registrationStatus',
+    registrationdeadline: 'registrationdeadline',
+    createdat: 'createdAt',
+    updatedat: 'updatedAt',
+    approvedat: 'approvedAt',
+    rejectedat: 'rejectedAt',
+    cancelledat: 'cancelledAt',
+    createdby: 'createdBy',
+    expiresat: 'expiresAt',
+    remindertime: 'reminderTime',
+    hoursvolunteered: 'hoursVolunteered',
+    certid: 'certId'
   };
   const m = {};
   for (const [k, v] of Object.entries(r)) {
     const key = fieldMap[k.toLowerCase()] || k;
-    m[key] = (['isSupportiveTeam', 'checkedIn', 'noShow', 'swapRequested', 'approved', 'approve'].includes(key)) ? (v === true || v === 'true') : v;
+    // Normalize booleans for known boolean fields
+    const boolFields = [
+      'isSupportiveTeam', 'checkedIn', 'noShow', 'swapRequested', 
+      'approved', 'approve', 'isPast', 'ispast', 'sent'
+    ];
+    m[key] = (boolFields.includes(key.toLowerCase()) || boolFields.includes(key)) ? (v === true || v === 'true') : v;
     if (key.toLowerCase() === 'id') m._id = v;
   }
   return m;
@@ -37,7 +60,9 @@ const db = {
   },
   async find(collection, query = {}, options = {}) {
     let select = options.select || '*';
-    if (collection === 'registrations' && select === '*') select = 'id,eventid,registrationid,name,email,phone,usn,type,roleid,rolename,teamname,status,checkedin,registeredat';
+    if (collection === 'registrations' && select === '*') {
+      select = 'id,eventid,registrationid,name,email,phone,usn,password,type,roleid,rolename,teamname,teammembers,status,checkedin,registeredat,photo,teamid,userId,noshow,approvedat';
+    }
     
     let b = supabase.from(collection).select(select);
     for (const [k, v] of Object.entries(query)) {
