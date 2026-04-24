@@ -88,12 +88,17 @@ router.get('/csv', authMiddleware, async (req, res) => {
       if (u.usn) userMap[u.usn.toLowerCase()] = u;
     });
 
-    const rows = [['Event', 'Organizer', 'Category', 'Name', 'Email', 'USN', 'Semester', 'Branch', 'Phone', 'Type', 'Role', 'Team Name', 'Status', 'Registered At', 'Check-in']];
+    const rows = [['Event', 'Organizer', 'Category', 'Name', 'Email', 'USN', 'Semester', 'Branch', 'Phone', 'Type', 'Role', 'Team Name', 'Team Members', 'Status', 'Registered At', 'Check-in']];
     
     regs.forEach(r => {
       const event = allEventsMap[r.eventId];
       const user = userMap[r.email?.toLowerCase()] || userMap[r.usn?.toLowerCase()];
       
+      // Format team members as a string: "Name 1, Name 2, ..."
+      const memberList = (r.teamMembers && Array.isArray(r.teamMembers)) 
+        ? r.teamMembers.map(m => m.name).join(', ') 
+        : '';
+
       // For volunteers, show their role; for participants, show the event title as context
       const roleInfo = r.type === 'volunteer' ? (r.roleName || 'Volunteer') : (event?.title || '');
       rows.push([
@@ -109,6 +114,7 @@ router.get('/csv', authMiddleware, async (req, res) => {
         r.type, 
         roleInfo, 
         r.teamName || '', 
+        memberList,
         r.status, 
         new Date(r.registeredAt).toLocaleString(), 
         r.checkedIn ? 'Yes' : 'No'
