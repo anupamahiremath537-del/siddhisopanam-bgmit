@@ -16,7 +16,9 @@ const mapRecord = r => {
     issupportiveteam: 'isSupportiveTeam', 
     checkedin: 'checkedIn', 
     registeredat: 'registeredAt',
-    volunteerroles: 'volunteerRoles'
+    volunteerroles: 'volunteerRoles',
+    teammode: 'teamMode',
+    teamsize: 'teamSize'
   };
   const m = {};
   for (const [k, v] of Object.entries(r)) {
@@ -40,7 +42,16 @@ const db = {
     let b = supabase.from(collection).select(select);
     for (const [k, v] of Object.entries(query)) {
       const f = normalizeField(k);
-      // SAFETY: Completely ignore $or and other complex keys to prevent SQL errors
+      
+      if (f === '$or' && Array.isArray(v)) {
+        const orStr = v.map(cond => {
+          const [ck, cv] = Object.entries(cond)[0];
+          return `${normalizeField(ck)}.eq.${cv}`;
+        }).join(',');
+        b = b.or(orStr);
+        continue;
+      }
+      
       if (f.startsWith('$')) continue; 
       
       if (v && typeof v === 'object' && v.$in) b = b.in(f, v.$in);
@@ -65,6 +76,16 @@ const db = {
     let b = supabase.from(collection).select('*', { count: 'exact', head: true });
     for (const [k, v] of Object.entries(query)) {
       const f = normalizeField(k);
+      
+      if (f === '$or' && Array.isArray(v)) {
+        const orStr = v.map(cond => {
+          const [ck, cv] = Object.entries(cond)[0];
+          return `${normalizeField(ck)}.eq.${cv}`;
+        }).join(',');
+        b = b.or(orStr);
+        continue;
+      }
+
       if (f.startsWith('$')) continue;
       if (v && typeof v === 'object' && v.$ne) b = b.neq(f, v.$ne);
       else b = b.eq(f, v);
@@ -91,7 +112,7 @@ const db = {
     let hasQuery = false;
     for (const [k, v] of Object.entries(query)) {
       const f = normalizeField(k);
-      if (f === 'id' || f === '_id' || f === 'registrationid') {
+      if (f === 'id' || f === '_id') {
         b = b.eq('id', v);
         hasQuery = true;
       } else if (!f.startsWith('$')) {
