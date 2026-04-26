@@ -1,4 +1,7 @@
 require('dotenv').config();
+const dns = require('dns');
+dns.setDefaultResultOrder('ipv4first'); // CRITICAL FIX for Supabase Undici HeadersTimeoutError on Render
+
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
