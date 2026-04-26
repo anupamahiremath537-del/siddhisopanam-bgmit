@@ -36,6 +36,27 @@ def load_data(file_path, default_key='data'):
                 return json.load(f)
         except:
             pass
+    
+    # Provide sample data for events if file is missing
+    if default_key == 'events':
+        return {
+            "events": [
+                {
+                    "eventId": "679ee38d-a005-4975-8603-402bcbbad5ad",
+                    "title": "Tech Fest 2026",
+                    "date": "2026-05-15",
+                    "time": "10:00",
+                    "location": "Main Auditorium",
+                    "category": "Technical",
+                    "registrationStatus": "open",
+                    "participantCount": 45,
+                    "volunteerCount": 12,
+                    "volunteerRoles": [{"id": "r1", "name": "Registration", "slots": 5}],
+                    "participantLimit": 200,
+                    "createdBy": "admin"
+                }
+            ]
+        }
     return {default_key: []}
 
 def save_data(file_path, data):
