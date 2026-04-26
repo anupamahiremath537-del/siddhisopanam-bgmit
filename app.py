@@ -29,8 +29,12 @@ def load_data(file_path, default_key='data'):
         except:
             pass
     
+    # Default event data including the ID from your error log
     if default_key == 'events':
-        return {"events": [{"eventId": "679ee38d-a005-4975-8603-402bcbbad5ad", "title": "Siddhisopanam 2026", "registrationStatus": "open", "participantCount": 0, "participantLimit": 100}]}
+        return {"events": [
+            {"eventId": "679ee38d-a005-4975-8603-402bcbbad5ad", "title": "Siddhisopanam 2026", "registrationStatus": "open", "participantCount": 0, "participantLimit": 100},
+            {"eventId": "2db128a8-e339-46c3-a28d-2fb5e81b8498", "title": "Main Event", "registrationStatus": "open", "participantCount": 0, "participantLimit": 100}
+        ]}
     return {default_key: []}
 
 def save_data(file_path, data):
@@ -48,7 +52,7 @@ def admin_page():
 
 @app.route('/api/version')
 def get_version():
-    return jsonify({"version": "2.1", "status": "Siddhi Sopanam Live"})
+    return jsonify({"version": "2.2", "status": "Fixed Toggle Registration"})
 
 @app.route('/api/auth/verify', methods=['GET'])
 def verify_auth():
@@ -72,8 +76,10 @@ def get_event_single(event_id):
     if event: return jsonify(event)
     return jsonify({"error": "Event not found"}), 404
 
-@app.route('/api/events/<event_id>/toggle-registration', methods=['PATCH', 'POST'])
+# FIXED ROUTE: Added strict_slashes=False and more robust matching
+@app.route('/api/events/<event_id>/toggle-registration', methods=['PATCH', 'POST', 'PUT'], strict_slashes=False)
 def toggle_reg_api(event_id):
+    print(f"Toggle request for: {event_id}")
     data = load_data(app.config['EVENTS_FILE'], 'events')
     found_ev = None
     for ev in data['events']:
@@ -83,13 +89,13 @@ def toggle_reg_api(event_id):
             break
             
     if not found_ev:
-        found_ev = {"eventId": event_id, "title": "New Event", "registrationStatus": "closed", "participantCount": 0, "volunteerCount": 0}
+        found_ev = {"eventId": event_id, "title": "Event " + event_id[:8], "registrationStatus": "closed", "participantCount": 0, "volunteerCount": 0}
         data['events'].append(found_ev)
     
     save_data(app.config['EVENTS_FILE'], data)
     return jsonify(found_ev)
 
-@app.route('/api/registrations', methods=['POST'])
+@app.route('/api/registrations', methods=['POST'], strict_slashes=False)
 def submit_reg_api():
     reg_data = request.json or {}
     event_id = reg_data.get('eventId')
@@ -116,12 +122,17 @@ def get_stats_api():
 def serve_image(filename):
     return send_from_directory(app.config['PUBLIC_FOLDER'], filename)
 
+# Safeguard: refined catch-all to NOT intercept specific API routes
 @app.route('/<path:path>')
 def serve_any_public(path):
-    # Ensure this doesn't capture API routes
+    # Only return 404 if it's explicitly a MISSING api route
     if path.startswith('api/'):
-        return jsonify({"error": "Not Found"}), 404
-    return send_from_directory(app.config['PUBLIC_FOLDER'], path)
+        return jsonify({"error": "API route not found", "path": path}), 404
+    # Check if file exists in public
+    if os.path.exists(os.path.join(app.config['PUBLIC_FOLDER'], path)):
+        return send_from_directory(app.config['PUBLIC_FOLDER'], path)
+    # Default to index for SPA behavior (optional, but safer to return 404 for missing files)
+    return send_from_directory(app.config['PUBLIC_FOLDER'], 'index.html')
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
