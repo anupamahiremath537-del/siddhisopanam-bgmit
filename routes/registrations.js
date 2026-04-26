@@ -784,7 +784,6 @@ router.get('/all', authMiddleware, async (req, res) => {
       select: selectFields,
     });
 
-    });
     console.log(`[Registrations API] Found ${regs.length} registrations.`);
     
     // Fetch ONLY events related to these registrations to avoid N+1 and massive fetches
