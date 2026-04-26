@@ -50,7 +50,7 @@ def load_data(file_path, default_key='data'):
                     "participantCount": 0,
                     "volunteerCount": 0,
                     "volunteerRoles": [{"id": "r1", "name": "Registration Desk", "slots": 5}],
-                    "participantLimit": 2, # Setting a small limit for testing
+                    "participantLimit": 2, 
                     "createdBy": "admin"
                 }
             ]
@@ -73,6 +73,18 @@ def serve_public(path):
     return send_from_directory(app.config['PUBLIC_FOLDER'], 'index.html')
 
 # --- AUTH ROUTES ---
+@app.route('/api/auth/send-otp', methods=['POST'])
+def send_otp():
+    return jsonify({"success": True, "message": "OTP sent! (Demo mode: use 123456)"})
+
+@app.route('/api/auth/verify-otp', methods=['POST'])
+def verify_otp():
+    data = request.json or {}
+    otp = data.get('otp')
+    if otp == "123456" or otp == 123456:
+        return jsonify({"success": True})
+    return jsonify({"success": False, "error": "Invalid OTP"}), 400
+
 @app.route('/api/auth/verify', methods=['GET'])
 def verify_auth():
     return jsonify({
@@ -100,47 +112,31 @@ def get_events():
     data = load_data(app.config['EVENTS_FILE'], 'events')
     return jsonify(data['events'])
 
-@app.route('/api/events', methods=['POST'])
-def create_event():
-    data = load_data(app.config['EVENTS_FILE'], 'events')
-    new_event = request.json
-    new_event['eventId'] = str(uuid.uuid4())
-    new_event['registrationStatus'] = 'open'
-    new_event['participantCount'] = 0
-    new_event['volunteerCount'] = 0
-    data['events'].append(new_event)
-    save_data(app.config['EVENTS_FILE'], data)
-    return jsonify(new_event)
-
-@app.route('/api/events/<event_id>/toggle-registration', methods=['PATCH', 'POST'], strict_slashes=False)
-def toggle_registration(event_id):
-    data = load_data(app.config['EVENTS_FILE'], 'events')
-    found_ev = None
-    for ev in data['events']:
-        if ev['eventId'] == event_id:
-            ev['registrationStatus'] = 'closed' if ev.get('registrationStatus') == 'open' else 'open'
-            found_ev = ev
-            break
-            
-    if not found_ev:
-        found_ev = {
-            "eventId": event_id,
-            "title": "Restored Event",
-            "date": datetime.now().strftime("%Y-%m-%d"),
-            "time": "09:00",
-            "location": "BGMIT",
-            "category": "General",
-            "registrationStatus": "closed",
-            "participantCount": 0,
-            "volunteerCount": 0,
-            "createdBy": "admin"
-        }
-        data['events'].append(found_ev)
-    
-    save_data(app.config['EVENTS_FILE'], data)
-    return jsonify(found_ev)
-
 # --- REGISTRATION ROUTES ---
+@app.route('/api/registrations/check-limit', methods=['GET'])
+def check_limit():
+    email = request.args.get('email')
+    usn = request.args.get('usn')
+    event_id = request.args.get('eventId')
+    
+    # Check if user is already a volunteer in 2 events (as per signup.html logic)
+    regs_data = load_data(app.config['REGS_FILE'], 'registrations')
+    user_vol_count = len([r for r in regs_data['registrations'] if r.get('email') == email and r.get('type') == 'volunteer'])
+    
+    # Check if participant limit reached for specific event
+    if event_id:
+        events_data = load_data(app.config['EVENTS_FILE'], 'events')
+        event = next((e for e in events_data['events'] if e['eventId'] == event_id), None)
+        if event:
+            if event.get('registrationStatus') == 'closed':
+                return jsonify({"error": "Registrations closed"}), 400
+            limit = int(event.get('participantLimit', 100))
+            current = int(event.get('participantCount', 0))
+            if current >= limit:
+                return jsonify({"error": "Limit reached", "full": True}), 400
+
+    return jsonify({"success": True, "volCount": user_vol_count})
+
 @app.route('/api/registrations', methods=['POST'])
 def submit_registration():
     reg_data = request.json
@@ -177,11 +173,38 @@ def submit_registration():
     
     return jsonify({"success": True, "message": "Registration successful!", "registration": reg_data})
 
-# --- REST OF ROUTES ---
-@app.route('/api/stats', methods=['GET'])
-def get_stats():
-    # Keep your CSV stats logic
-    return jsonify({"total": 56})
+@app.route('/api/events/<event_id>/toggle-registration', methods=['PATCH', 'POST'], strict_slashes=False)
+def toggle_registration(event_id):
+    data = load_data(app.config['EVENTS_FILE'], 'events')
+    found_ev = None
+    for ev in data['events']:
+        if ev['eventId'] == event_id:
+            ev['registrationStatus'] = 'closed' if ev.get('registrationStatus') == 'open' else 'open'
+            found_ev = ev
+            break
+    
+    if not found_ev:
+        found_ev = {
+            "eventId": event_id,
+            "title": "Restored Event",
+            "date": datetime.now().strftime("%Y-%m-%d"),
+            "time": "09:00",
+            "location": "BGMIT",
+            "category": "General",
+            "registrationStatus": "closed",
+            "participantCount": 0,
+            "volunteerCount": 0,
+            "createdBy": "admin"
+        }
+        data['events'].append(found_ev)
+    
+    save_data(app.config['EVENTS_FILE'], data)
+    return jsonify(found_ev)
+
+@app.route('/api/registrations/all', methods=['GET'])
+def get_all_registrations():
+    data = load_data(app.config['REGS_FILE'], 'registrations')
+    return jsonify(data['registrations'])
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
