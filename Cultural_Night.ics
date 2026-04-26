@@ -1,0 +1,19 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Event Scheduler//EN
+BEGIN:VEVENT
+UID:2@event-scheduler.com
+DTSTAMP:20251122T050521Z
+DTSTART:20251220T003000Z
+DTEND:20251220T023000Z
+SUMMARY:Cultural Night
+DESCRIPTION:Celebrate diversity with music, dance, and food from around the world. Join us for an evening of cultural performances.
+LOCATION:College Ground
+STATUS:CONFIRMED
+BEGIN:VALARM
+TRIGGER:-PT24H
+ACTION:DISPLAY
+DESCRIPTION:Reminder: Event tomorrow
+END:VALARM
+END:VEVENT
+END:VCALENDAR
