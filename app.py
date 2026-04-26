@@ -53,7 +53,7 @@ def load_data(file_path, default_key='data'):
                     "registrationStatus": "open",
                     "participantCount": 45,
                     "volunteerCount": 12,
-                    "volunteerRoles": [{"id": "r1", "name": "Registration", "slots": 5}],
+                    "volunteerRoles": [{"id": "r1", "name": "Registration Desk", "slots": 5}],
                     "participantLimit": 200,
                     "createdBy": "admin"
                 }
@@ -188,7 +188,8 @@ def broadcast():
 @app.route('/images/<path:filename>')
 def serve_image(filename):
     base_dir = os.path.dirname(os.path.abspath(__file__))
-    if os.path.exists(os.path.join(app.config['UPLOAD_FOLDER'], filename)):
+    upload_file = os.path.join(base_dir, app.config['UPLOAD_FOLDER'], filename)
+    if os.path.exists(upload_file):
         return send_from_directory(os.path.join(base_dir, app.config['UPLOAD_FOLDER']), filename)
     return send_from_directory(base_dir, filename)
 
@@ -229,6 +230,16 @@ def get_alerts():
                 "last_seen_time": "2024-01-15T14:30:00",
                 "status": "critical",
                 "image": "Anusign.png"
+            },
+            {
+                "id": str(uuid.uuid4()),
+                "name": "Michael Chen",
+                "age": 10,
+                "description": "Blonde hair, glasses, striped shirt",
+                "last_seen": "Lincoln Elementary",
+                "last_seen_time": "2024-01-15T11:45:00",
+                "status": "urgent",
+                "image": "drawio.png"
             }
         ]
     })
