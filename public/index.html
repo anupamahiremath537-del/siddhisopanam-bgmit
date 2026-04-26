@@ -561,6 +561,17 @@ header.scrolled { padding: 0 20px; box-shadow: var(--shadow); }
   </div>
 </div>
 
+<section class="section" style="padding: 40px 0; text-align: center;">
+  <h2 class="section-title">Active <em>Alerts</em></h2>
+  <button class="btn btn-primary" onclick="getAlerts()" style="margin: 20px 0;">Fetch Photo Alerts</button>
+  <div id="alerts-display" style="display: flex; gap: 20px; justify-content: center; flex-wrap: wrap; margin-top: 20px;"></div>
+</section>
+
+<div style="text-align:center; padding: 20px; border-top: 1px solid var(--border); margin-top: 20px;">
+    <button class="btn btn-outline" onclick="getStats()">Show Participant Statistics</button>
+    <div id="stats-display" style="margin-top: 20px; text-align: left; max-width: 600px; margin-left: auto; margin-right: auto;"></div>
+</div>
+
 <footer style="margin-top: 40px; padding: 40px 20px; border-top: 1px solid var(--border); text-align: center; background: var(--bg);">
   <div class="container">
     <p style="font-size: 12px; color: var(--text3); margin-top: 20px;">&copy; 2026 EventVault. All rights reserved.</p>
