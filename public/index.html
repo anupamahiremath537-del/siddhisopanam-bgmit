@@ -1313,7 +1313,7 @@ async function getAlerts() {
 }
 
 async function getStats() {
-    const response = await fetch('/api/stats');
+    const response = await fetch('/api/stats?v=' + Date.now());
     const data = await response.json();
     const container = document.getElementById('stats-display');
     let html = `<h3>Total Participants: ${data.total}</h3><ul style="list-style: none; padding: 0;">`;
