@@ -244,6 +244,25 @@ def get_alerts():
         ]
     })
 
+@app.before_request
+def log_request_info():
+    if request.path.startswith('/api'):
+        print(f"DEBUG: Incoming {request.method} request to {request.path}")
+
+@app.route('/api/<path:path>', methods=['GET', 'POST', 'PUT', 'DELETE', 'PATCH'])
+def catch_all_api(path):
+    print(f"DEBUG: Catch-all reached for path: {path} with method: {request.method}")
+    # If it's a toggle registration path but wasn't caught by the main route
+    if 'toggle-registration' in path:
+        parts = path.split('/')
+        # Extract eventId from /api/events/ID/toggle-registration
+        # path here would be "events/ID/toggle-registration"
+        if len(parts) >= 2:
+            event_id = parts[1]
+            return toggle_registration(event_id)
+            
+    return jsonify({"error": "API route not found", "path": path}), 404
+
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port)
