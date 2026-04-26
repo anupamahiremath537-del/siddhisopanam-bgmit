@@ -777,12 +777,12 @@ router.get('/all', authMiddleware, async (req, res) => {
     if (type && type !== 'all') query.type = type;
 
     console.log('[Registrations API] Fetching registrations from DB...');
-    // EXTREME PERFORMANCE FIX: Fetch only the absolute minimum to prevent 522 timeouts
-    const selectFields = 'id,eventid,registrationid,name,email,usn,type,teamname,status,checkedin,noshow,registeredat';
+    // Optimized selection for performance while ensuring all mapped fields are present
+    const selectFields = 'id,eventid,registrationid,name,email,usn,type,roleid,rolename,teamname,status,checkedin,noshow,registeredat';
     let regs = await db.find('registrations', query, {
       sort: { registeredAt: -1 },
       select: selectFields,
-      limit: 1000 // Add a hard limit to prevent the DB from crashing
+      limit: 500 // Balanced limit for dashboard
     });
 
     if (!regs) regs = [];
