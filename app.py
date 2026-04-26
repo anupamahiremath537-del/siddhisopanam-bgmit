@@ -61,30 +61,19 @@ def save_data(file_path, data):
     with open(file_path, 'w') as f:
         json.dump(data, f, indent=2)
 
-# --- SERVE STATIC FILES FROM PUBLIC ---
+# --- SERVE STATIC FILES ---
 @app.route('/')
-def index():
+def index_root():
     return send_from_directory(app.config['PUBLIC_FOLDER'], 'index.html')
 
-@app.route('/<path:path>')
-def serve_public(path):
-    if os.path.exists(os.path.join(app.config['PUBLIC_FOLDER'], path)):
-        return send_from_directory(app.config['PUBLIC_FOLDER'], path)
-    return send_from_directory(app.config['PUBLIC_FOLDER'], 'index.html')
+@app.route('/admin')
+def admin_page():
+    # Force serve admin.html from templates or public
+    if os.path.exists('templates/admin.html'):
+        return render_template('admin.html')
+    return send_from_directory(app.config['PUBLIC_FOLDER'], 'admin.html')
 
 # --- AUTH ROUTES ---
-@app.route('/api/auth/send-otp', methods=['POST'])
-def send_otp():
-    return jsonify({"success": True, "message": "OTP sent! (Demo mode: use 123456)"})
-
-@app.route('/api/auth/verify-otp', methods=['POST'])
-def verify_otp():
-    data = request.json or {}
-    otp = data.get('otp')
-    if otp == "123456" or otp == 123456:
-        return jsonify({"success": True})
-    return jsonify({"success": False, "error": "Invalid OTP"}), 400
-
 @app.route('/api/auth/verify', methods=['GET'])
 def verify_auth():
     return jsonify({
@@ -92,54 +81,67 @@ def verify_auth():
         "user": {"role": "admin", "username": "admin", "email": "admin@example.com", "approved": True}
     })
 
-@app.route('/api/auth/login', methods=['POST', 'GET'])
-@app.route('/login', methods=['POST', 'GET'])
-def login():
-    if request.method == 'GET':
-        return send_from_directory(app.config['PUBLIC_FOLDER'], 'login.html')
-    data = request.json or {}
-    username = data.get('username', 'User')
+@app.route('/api/auth/login', methods=['POST'])
+@app.route('/api/login', methods=['POST'])
+@app.route('/login', methods=['POST'])
+def login_api():
+    data = request.json or request.form or {}
+    u = data.get('username') or data.get('email') or 'admin'
     return jsonify({
         "success": True, 
-        "message": f"Welcome, {username}!",
         "token": "mock-token-for-demo",
-        "user": {"role": "admin", "username": username, "approved": True}
+        "user": {"role": "admin", "username": u, "approved": True, "email": u}
     })
 
 # --- EVENT ROUTES ---
 @app.route('/api/events', methods=['GET'])
-def get_events():
+def get_events_api():
     data = load_data(app.config['EVENTS_FILE'], 'events')
     return jsonify(data['events'])
 
+@app.route('/api/events', methods=['POST'])
+def create_event_api():
+    data = load_data(app.config['EVENTS_FILE'], 'events')
+    new_event = request.json or request.form
+    new_event = dict(new_event)
+    new_event['eventId'] = str(uuid.uuid4())
+    new_event['registrationStatus'] = 'open'
+    new_event['participantCount'] = 0
+    new_event['volunteerCount'] = 0
+    data['events'].append(new_event)
+    save_data(app.config['EVENTS_FILE'], data)
+    return jsonify(new_event)
+
+@app.route('/api/events/<event_id>/toggle-registration', methods=['PATCH', 'POST'])
+def toggle_reg_api(event_id):
+    data = load_data(app.config['EVENTS_FILE'], 'events')
+    found_ev = None
+    for ev in data['events']:
+        if ev['eventId'] == event_id:
+            ev['registrationStatus'] = 'closed' if ev.get('registrationStatus', 'open') == 'open' else 'open'
+            found_ev = ev
+            break
+            
+    if not found_ev:
+        found_ev = {
+            "eventId": event_id,
+            "title": "Restored Event",
+            "date": datetime.now().strftime("%Y-%m-%d"),
+            "location": "BGMIT",
+            "registrationStatus": "closed",
+            "participantCount": 0,
+            "volunteerCount": 0
+        }
+        data['events'].append(found_ev)
+    
+    save_data(app.config['EVENTS_FILE'], data)
+    return jsonify(found_ev)
+
 # --- REGISTRATION ROUTES ---
-@app.route('/api/registrations/check-limit', methods=['GET'])
-def check_limit():
-    email = request.args.get('email')
-    usn = request.args.get('usn')
-    event_id = request.args.get('eventId')
-    
-    # Check if user is already a volunteer in 2 events (as per signup.html logic)
-    regs_data = load_data(app.config['REGS_FILE'], 'registrations')
-    user_vol_count = len([r for r in regs_data['registrations'] if r.get('email') == email and r.get('type') == 'volunteer'])
-    
-    # Check if participant limit reached for specific event
-    if event_id:
-        events_data = load_data(app.config['EVENTS_FILE'], 'events')
-        event = next((e for e in events_data['events'] if e['eventId'] == event_id), None)
-        if event:
-            if event.get('registrationStatus') == 'closed':
-                return jsonify({"error": "Registrations closed"}), 400
-            limit = int(event.get('participantLimit', 100))
-            current = int(event.get('participantCount', 0))
-            if current >= limit:
-                return jsonify({"error": "Limit reached", "full": True}), 400
-
-    return jsonify({"success": True, "volCount": user_vol_count})
-
 @app.route('/api/registrations', methods=['POST'])
-def submit_registration():
-    reg_data = request.json
+def submit_reg_api():
+    reg_data = request.json or request.form
+    reg_data = dict(reg_data)
     event_id = reg_data.get('eventId')
     
     events_data = load_data(app.config['EVENTS_FILE'], 'events')
@@ -149,19 +151,15 @@ def submit_registration():
         return jsonify({"error": "Event not found"}), 404
         
     if event.get('registrationStatus') == 'closed':
-        return jsonify({"error": "Registrations for this event are closed."}), 400
+        return jsonify({"error": "Registrations are closed"}), 400
         
     if reg_data.get('type') == 'participant':
-        limit = int(event.get('participantLimit', 100))
-        current = int(event.get('participantCount', 0))
-        if current >= limit:
-            return jsonify({"error": "Participant limit reached for this event."}), 400
+        if int(event.get('participantCount', 0)) >= int(event.get('participantLimit', 100)):
+            return jsonify({"error": "Limit reached"}), 400
 
     data = load_data(app.config['REGS_FILE'], 'registrations')
     reg_data['registrationId'] = str(uuid.uuid4())
     reg_data['status'] = 'pending'
-    reg_data['checkedIn'] = False
-    reg_data['registeredAt'] = datetime.now().isoformat()
     data['registrations'].append(reg_data)
     save_data(app.config['REGS_FILE'], data)
     
@@ -171,40 +169,21 @@ def submit_registration():
         event['volunteerCount'] = event.get('volunteerCount', 0) + 1
     save_data(app.config['EVENTS_FILE'], events_data)
     
-    return jsonify({"success": True, "message": "Registration successful!", "registration": reg_data})
-
-@app.route('/api/events/<event_id>/toggle-registration', methods=['PATCH', 'POST'], strict_slashes=False)
-def toggle_registration(event_id):
-    data = load_data(app.config['EVENTS_FILE'], 'events')
-    found_ev = None
-    for ev in data['events']:
-        if ev['eventId'] == event_id:
-            ev['registrationStatus'] = 'closed' if ev.get('registrationStatus') == 'open' else 'open'
-            found_ev = ev
-            break
-    
-    if not found_ev:
-        found_ev = {
-            "eventId": event_id,
-            "title": "Restored Event",
-            "date": datetime.now().strftime("%Y-%m-%d"),
-            "time": "09:00",
-            "location": "BGMIT",
-            "category": "General",
-            "registrationStatus": "closed",
-            "participantCount": 0,
-            "volunteerCount": 0,
-            "createdBy": "admin"
-        }
-        data['events'].append(found_ev)
-    
-    save_data(app.config['EVENTS_FILE'], data)
-    return jsonify(found_ev)
+    return jsonify({"success": True, "registration": reg_data})
 
 @app.route('/api/registrations/all', methods=['GET'])
-def get_all_registrations():
+def get_all_regs_api():
     data = load_data(app.config['REGS_FILE'], 'registrations')
     return jsonify(data['registrations'])
+
+@app.route('/api/stats', methods=['GET'])
+def get_stats_api():
+    return jsonify({"total": 56})
+
+# --- CATCH ALL FOR OTHER PUBLIC FILES ---
+@app.route('/<path:path>')
+def serve_any_public(path):
+    return send_from_directory(app.config['PUBLIC_FOLDER'], path)
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
