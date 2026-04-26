@@ -814,12 +814,27 @@ router.get('/all', authMiddleware, async (req, res) => {
       });
     }
 
-    const allUsers = await db.find('users', {});
-    const userMap = {};
-    allUsers.forEach(u => {
-      if (u.email) userMap[u.email.toLowerCase()] = u;
-      if (u.usn) userMap[u.usn.toLowerCase()] = u;
-    });
+    // Fetch ONLY users related to these registrations
+    const emails = [...new Set(regs.map(r => r.email).filter(e => e))];
+    const usns = [...new Set(regs.map(r => r.usn).filter(u => u))];
+    let userMap = {};
+    
+    if (emails.length > 0 || usns.length > 0) {
+      try {
+        const users = await db.find('users', {
+          $or: [
+            { email: { $in: emails } },
+            { usn: { $in: usns } }
+          ]
+        });
+        (users || []).forEach(u => {
+          if (u.email) userMap[u.email.toLowerCase()] = u;
+          if (u.usn) userMap[u.usn.toLowerCase()] = u;
+        });
+      } catch (uErr) {
+        console.error('[Registrations API] Error fetching related users:', uErr.message);
+      }
+    }
 
     const enriched = regs.map(r => {
       const event = allEventsMap[r.eventId];
