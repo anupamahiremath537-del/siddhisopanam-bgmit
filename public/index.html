@@ -1292,6 +1292,25 @@ async function initApp() {
   }
 }
 
+async function getAlerts() {
+    const response = await fetch('/api/alerts');
+    const data = await response.json();
+    const container = document.getElementById('alerts-display');
+    container.innerHTML = '';
+    
+    data.alerts.forEach(alert => {
+        const card = document.createElement('div');
+        card.style.cssText = 'background:white; border:1px solid var(--border); padding:20px; border-radius:20px; width:280px; box-shadow:var(--shadow);';
+        card.innerHTML = `
+            <img src="/${alert.image}" style="width:100%; border-radius:12px; margin-bottom:15px;">
+            <h3 style="font-family:Fraunces, serif;">${alert.name}</h3>
+            <p style="font-size:14px; color:var(--text2); margin: 10px 0;">${alert.description}</p>
+            <span class="badge badge-confirmed">${alert.status}</span>
+        `;
+        container.appendChild(card);
+    });
+}
+
 async function getStats() {
     const response = await fetch('/api/stats');
     const data = await response.json();

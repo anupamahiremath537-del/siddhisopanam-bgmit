@@ -34,8 +34,30 @@ app.use('/api/certificates', certificateRoutes);
 app.use('/api/chat', chatRoutes);
 
 // Version and Stats API
-app.get('/api/version', (req, res) => res.json({ version: "3.0", branding: "Siddhi Sopanam" }));
+app.get('/api/version', (req, res) => res.json({ version: "3.1", branding: "Siddhi Sopanam" }));
 app.get('/api/stats', (req, res) => res.json({ total: 56, details: [{ file: "CSV Participant Data", count: 56 }] }));
+app.get('/api/alerts', (req, res) => {
+  res.json({
+    alerts: [
+      {
+        name: "Emma Johnson",
+        age: 8,
+        description: "Demo Profile 1",
+        last_seen: "Main Gate",
+        image: "Anusign.png",
+        status: "Safe"
+      },
+      {
+        name: "Michael Chen",
+        age: 10,
+        description: "Demo Profile 2",
+        last_seen: "Auditorium",
+        image: "drawio.png",
+        status: "Verified"
+      }
+    ]
+  });
+});
 
 // Error Handling Middleware
 app.use((err, req, res, next) => {
