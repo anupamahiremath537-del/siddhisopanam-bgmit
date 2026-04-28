@@ -7,4 +7,10 @@ const supabaseConfigs = [
   }
 ];
 
-module.exports = { supabaseConfigs };
+// Export primary config directly for backward compatibility
+module.exports = { 
+  supabaseConfigs,
+  projectUrl: supabaseConfigs[0].projectUrl,
+  anonKey: supabaseConfigs[0].anonKey,
+  serviceRoleKey: supabaseConfigs[0].serviceRoleKey
+};
