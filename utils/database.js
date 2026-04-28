@@ -203,4 +203,10 @@ const db = {
   }
 };
 
-module.exports = { db, supabase, supabaseClients, getSupabaseClient };
+db.db = db;
+db.supabase = supabase;
+db.supabaseClients = supabaseClients;
+db.getSupabaseClient = getSupabaseClient;
+
+module.exports = db;
+
