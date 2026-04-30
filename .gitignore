@@ -1,9 +1,24 @@
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS files
+desktop.ini
+.DS_Store
+
+# Sensitive files
+.env
+twilio_2FA_recovery_code.txt
+
+# Project specific ignores
 venv/
 __pycache__/
 *.pyc
+node_modules/
 uploads/
 data/
-.env
 .vscode/
 *.msi
 *.exe
@@ -24,7 +39,8 @@ python-*/
 get-pip.py
 firebase-service-account.json.json
 mastersolis-*.json
-!Anusign.png
-!drawio.png
-!qr_code_Tech_Fest_2025.png
-!drawio.png
+
+# Data and exports
+*.csv
+*.ics
+Untitled*.png
