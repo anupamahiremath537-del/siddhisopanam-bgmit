@@ -14,6 +14,9 @@ module.exports = {
         content: Buffer.isBuffer(a.content) ? a.content.toString('base64') : Buffer.from(a.content).toString('base64')
       }));
 
+      const senderEmail = process.env.EMAIL_USER || 'bgmitcs034@gmail.com';
+      console.log(`[Email Debug] Attempting send to ${to} from ${senderEmail}...`);
+
       const response = await fetch('https://api.brevo.com/v3/smtp/email', {
         method: 'POST',
         headers: {
@@ -24,7 +27,7 @@ module.exports = {
         body: JSON.stringify({
           sender: { 
             name: process.env.EMAIL_FROM_NAME || 'EventVault', 
-            email: process.env.EMAIL_USER || 'bgmitcs034@gmail.com' 
+            email: senderEmail
           },
           to: [{ email: to }],
           subject: subject,
@@ -37,10 +40,10 @@ module.exports = {
       const data = await response.json();
 
       if (response.ok) {
-        console.log(`[Email SENT via Brevo API] To: ${to}, ID: ${data.messageId}`);
+        console.log(`[Email SUCCESS] To: ${to}, MessageID: ${data.messageId}`);
         return { success: true, messageId: data.messageId };
       } else {
-        console.error('[Email Brevo API ERROR]', data);
+        console.error('[Email ERROR - Brevo Rejected]', { status: response.status, data });
         return { error: data.message || 'Brevo API Error' };
       }
     } catch (err) {

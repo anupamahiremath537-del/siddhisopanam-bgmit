@@ -19,6 +19,7 @@ router.get('/', async (req, res) => {
     // 3. Count registrations in batch to avoid N+1 queries
     const allRegs = await db.find('registrations', { status: { $ne: 'cancelled' } }, { select: 'eventid,type,roleid' });
     
+<<<<<<< HEAD
     // Group registrations by event and role for O(1) lookup
     const pCountMap = new Map();
     const vCountMap = new Map();
@@ -40,13 +41,26 @@ router.get('/', async (req, res) => {
       
       const roles = (ev.volunteerRoles || []).map(r => {
         const filled = roleMap.get(`${ev.eventId}_${r.id}`) || 0;
+=======
+    const enriched = events.map(ev => {
+      const evRegs = allRegs.filter(r => r.eventId === ev.eventId);
+      const pCount = evRegs.filter(r => r.type === 'participant').length;
+      const vRegs = evRegs.filter(r => r.type === 'volunteer');
+      
+      const roles = (ev.volunteerRoles || []).map(r => {
+        const filled = vRegs.filter(vr => vr.roleId === r.id).length;
+>>>>>>> d5586702609478d91f799e3d928811350adb99b4
         return { ...r, filled, remaining: Math.max(0, r.slots - filled) };
       });
 
       return { 
         ...ev, 
         participantCount: pCount, 
+<<<<<<< HEAD
         volunteerCount: vCount, 
+=======
+        volunteerCount: vRegs.length, 
+>>>>>>> d5586702609478d91f799e3d928811350adb99b4
         roles 
       };
     });

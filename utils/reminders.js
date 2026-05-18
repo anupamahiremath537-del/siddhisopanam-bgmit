@@ -1,6 +1,7 @@
 const db = require('./database');
 const emailUtil = require('./email');
 
+<<<<<<< HEAD
 let isRunning = false;
 
 async function sendReminders() {
@@ -9,6 +10,9 @@ async function sendReminders() {
     return;
   }
   isRunning = true;
+=======
+async function sendReminders() {
+>>>>>>> d5586702609478d91f799e3d928811350adb99b4
   console.log('[Reminder Service] Starting reminder check...');
   try {
     // 1. Calculate the date for tomorrow (YYYY-MM-DD)
@@ -23,7 +27,10 @@ async function sendReminders() {
     
     if (upcomingEvents.length === 0) {
       console.log('[Reminder Service] No events found for tomorrow.');
+<<<<<<< HEAD
       isRunning = false;
+=======
+>>>>>>> d5586702609478d91f799e3d928811350adb99b4
       return;
     }
 
@@ -45,12 +52,20 @@ async function sendReminders() {
         eventId: event.eventId,
         type: '24h'
       });
+<<<<<<< HEAD
       const sentRegIds = new Set(sentReminders.map(r => r.registrationId || r.registrationid));
+=======
+      const sentRegIds = new Set(sentReminders.map(r => r.registrationId));
+>>>>>>> d5586702609478d91f799e3d928811350adb99b4
 
       for (const reg of registrations) {
         if (!reg.email) continue;
 
+<<<<<<< HEAD
         if (sentRegIds.has(reg.registrationId) || sentRegIds.has(reg.registrationid)) {
+=======
+        if (sentRegIds.has(reg.registrationId)) {
+>>>>>>> d5586702609478d91f799e3d928811350adb99b4
           continue; // Already sent
         }
 
@@ -81,7 +96,11 @@ async function sendReminders() {
         if (emailResult.success) {
           // 6. Record that the reminder was sent
           await db.insert('reminders', {
+<<<<<<< HEAD
             registrationId: reg.registrationId || reg.registrationid,
+=======
+            registrationId: reg.registrationId,
+>>>>>>> d5586702609478d91f799e3d928811350adb99b4
             eventId: event.eventId,
             type: '24h',
             sentAt: new Date().toISOString()
@@ -90,16 +109,22 @@ async function sendReminders() {
         } else {
           console.error(`[Reminder Service] Failed to send reminder to ${reg.email}: ${emailResult.error}`);
         }
+<<<<<<< HEAD
         
         // Add a small delay to avoid hitting rate limits
         await new Promise(r => setTimeout(r, 500));
+=======
+>>>>>>> d5586702609478d91f799e3d928811350adb99b4
       }
     }
     console.log('[Reminder Service] Completed reminder check.');
   } catch (err) {
     console.error('[Reminder Service ERROR]', err);
+<<<<<<< HEAD
   } finally {
     isRunning = false;
+=======
+>>>>>>> d5586702609478d91f799e3d928811350adb99b4
   }
 }
 

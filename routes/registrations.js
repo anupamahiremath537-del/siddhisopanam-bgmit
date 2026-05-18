@@ -700,7 +700,10 @@ router.post('/broadcast-certificates', authMiddleware, async (req, res) => {
           
           console.log(`[Cert Broadcast] Generating PDF for ${reg.name}...`);
           const certBuffer = await certUtil.generateCertificatePDF({
+<<<<<<< HEAD
             registrationId: reg.registrationId,
+=======
+>>>>>>> d5586702609478d91f799e3d928811350adb99b4
             name: reg.name,
             usn: reg.usn,
             eventTitle: event.title,
