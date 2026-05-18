@@ -1,0 +1,46 @@
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS files
+desktop.ini
+.DS_Store
+
+# Sensitive files
+.env
+twilio_2FA_recovery_code.txt
+
+# Project specific ignores
+venv/
+__pycache__/
+*.pyc
+node_modules/
+uploads/
+data/
+.vscode/
+*.msi
+*.exe
+*.pdf
+*.docx
+*.pptx
+*.zip
+*.mkv
+*.jpeg
+*.lnk
+dlib*/
+lib-master/
+node-v*/
+postgresql-*/
+xampp-*/
+python-*/
+*.whl
+get-pip.py
+firebase-service-account.json.json
+mastersolis-*.json
+
+# Data and exports
+*.csv
+*.ics
+Untitled*.png

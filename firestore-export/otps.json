@@ -1,0 +1,37 @@
+[
+  {
+    "email": "test@example.com",
+    "otp": "969943",
+    "expiresAt": "2026-03-24T09:35:18.134Z",
+    "createdAt": "2026-03-24T09:25:18.344Z",
+    "id": "F4xjKrNcaV3I9ZLuEDCU"
+  },
+  {
+    "email": "amoghyalameli26@gmail.com",
+    "otp": "602203",
+    "expiresAt": "2026-03-24T07:46:39.368Z",
+    "createdAt": "2026-03-24T07:36:39.553Z",
+    "id": "baWfJKp7U4P33yTeuSy0"
+  },
+  {
+    "email": "admin@eventvault.org",
+    "otp": "269832",
+    "expiresAt": "2026-03-23T18:28:40.732Z",
+    "createdAt": "2026-03-23T18:18:40.865Z",
+    "id": "gkuDEMm3RC5Ve4mP9Rj6"
+  },
+  {
+    "email": "devduttpadikkal1817@gmail.com",
+    "otp": "390168",
+    "expiresAt": "2026-04-03T14:25:19.650Z",
+    "createdAt": "2026-04-03T14:15:19.952Z",
+    "id": "iTpt1lsEjNmqqj1tkN73"
+  },
+  {
+    "email": "alienv017@gmail.com",
+    "otp": "250802",
+    "expiresAt": "2026-03-31T05:03:26.375Z",
+    "createdAt": "2026-03-31T04:53:26.751Z",
+    "id": "wrTx6SCHnpy2HdhQHhEz"
+  }
+]

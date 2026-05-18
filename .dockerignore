@@ -1,0 +1,12 @@
+node_modules
+npm-debug.log
+.git
+.gitignore
+firebase.json
+firestore.rules
+firestore.indexes.json
+dataconnect/
+eventvault-func/
+src/
+*.log
+.env

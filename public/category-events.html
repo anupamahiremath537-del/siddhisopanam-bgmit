@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EventVault — Category Events</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:ital,wght@0,300;0,400;0,600;0,700;0,800;1,400&family=Space+Mono:wght@400;700&family=Fraunces:ital,wght@0,700;1,400&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #fafaf8;
+  --surface: #ffffff;
+  --surface2: #f4f3ef;
+  --border: #e8e6df;
+  --text: #1a1916;
+  --text2: #6b6860;
+  --text3: #b0aea8;
+  --accent: #2d5be3;
+  --radius: 16px;
+  --shadow: 0 4px 24px rgba(0,0,0,0.08);
+  --shadow-lg: 0 12px 40px rgba(0,0,0,0.12);
+  --ease: cubic-bezier(0.4, 0, 0.2, 1);
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:var(--bg); color:var(--text); font-family:'Nunito',sans-serif; overflow-x: hidden; }
+a { color:inherit; text-decoration:none; }
+
+/* ANIMATIONS */
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+header {
+  background:var(--surface); border-bottom:1px solid var(--border);
+  padding:0 40px;
+}
+.header-inner { display:flex; align-items:center; justify-content:space-between; height:64px; max-width:1200px; margin:0 auto; }
+.logo { font-family:'Fraunces',serif; font-size:22px; font-weight:700; letter-spacing:-0.5px; }
+.logo span { color:var(--accent); }
+
+.container { max-width:1200px; margin:0 auto; padding:40px; }
+.section-header { margin-bottom:32px; display: flex; align-items: center; justify-content: space-between; }
+.section-title { font-family:'Fraunces',serif; font-size:32px; font-weight:700; }
+.section-title em { color:var(--accent); font-style:italic; }
+
+.filters { display:flex; gap:12px; margin-bottom:32px; }
+.filter-chip { padding:10px 24px; border-radius:30px; border:2px solid var(--border); background:var(--surface); font-size:14px; font-weight:700; cursor:pointer; transition:all 0.2s; }
+.filter-chip:hover { border-color:var(--accent); color:var(--accent); }
+.filter-chip.active { background:var(--accent); color:#fff; border-color:var(--accent); }
+
+.events-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:24px; }
+.event-card {
+  background: #ffffff;
+  border: 1px solid var(--border); border-radius: 16px;
+  overflow:hidden; transition:all 0.3s;
+  display:flex; flex-direction:column;
+  box-shadow: var(--shadow);
+  position: relative;
+}
+.event-card:hover { transform:translateY(-5px); }
+.event-card::before {
+  content: ""; position: absolute; inset: 0;
+  background-image: var(--bg-img); background-size: cover; background-position: center;
+  opacity: 0.1; z-index: 0; transition: opacity 0.3s;
+}
+.event-card:hover::before { opacity: 0.15; }
+.event-card-top { padding:16px; flex-grow:1; position: relative; z-index: 1; }
+.event-card-cat { display:inline-block; font-size:9px; font-weight:800; letter-spacing:1px; text-transform:uppercase; padding:4px 10px; border-radius:30px; background: var(--surface2); margin-bottom:10px; }
+.event-card h3 { font-size:18px; font-weight:800; margin-bottom:10px; font-family: 'Fraunces', serif; }
+.event-meta { font-size:12px; color:var(--text2); margin-bottom:10px; display:flex; flex-direction:column; gap:4px; }
+.event-meta-item { display:flex; align-items:center; gap:8px; }
+
+.btn { display:inline-flex; align-items:center; gap:6px; padding:8px 16px; border-radius:10px; font-weight:700; font-size:13px; cursor:pointer; transition:all 0.2s; border:none; text-decoration:none; }
+.btn-primary { background:var(--accent); color:#fff; }
+.btn-outline { background:transparent; border:2px solid var(--border); color:var(--text2); }
+
+.empty-state { text-align:center; padding:80px 20px; grid-column: 1 / -1; }
+.empty-icon { font-size:64px; margin-bottom:16px; opacity: 0.5; }
+
+@media(max-width:768px) {
+  header, .container { padding:0 20px; }
+  .section-title { font-size: 24px; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <a href="/" class="logo">Event<span>Vault</span></a>
+    <a href="/" class="btn btn-outline btn-sm">← Back to Home</a>
+  </div>
+</header>
+
+<div class="container">
+  <div class="section-header">
+    <h1 class="section-title"><span id="category-name">Category</span> <em>Events</em></h1>
+  </div>
+
+  <div class="events-grid" id="events-grid">
+    <!-- Events will be loaded here -->
+  </div>
+</div>
+
+<div class="toast-container" id="toasts"></div>
+
+<!-- CHATBOT UI -->
+<div id="chatbot-container" style="position: fixed; bottom: 24px; right: 24px; z-index: 1000; font-family: 'Nunito', sans-serif; display: flex; flex-direction: column; align-items: flex-end; gap: 12px;">
+  <!-- Greeting Bubble -->
+  <div id="chatbot-greeting" style="background: #1a1a1a; color: #fff; padding: 10px 18px; border-radius: 15px 15px 0 15px; font-size: 13px; font-weight: 700; box-shadow: 0 4px 15px rgba(0,0,0,0.1); animation: fadeIn 0.5s var(--ease); white-space: nowrap;">
+    Hey!! How can<br>I help you.....
+  </div>
+
+  <!-- Chatbot Toggle Button -->
+  <button id="chatbot-toggle" style="width: 60px; height: 60px; border-radius: 30px; background: #1a1a1a; color: #fff; border: none; cursor: pointer; box-shadow: 0 8px 32px rgba(0,0,0,0.2); display: flex; align-items: center; justify-content: center; transition: all 0.3s var(--ease); position: relative;">
+    <span id="chatbot-icon" style="font-size: 28px;">🤖</span>
+    <span id="chatbot-close-icon" style="font-size: 24px; display: none;">✕</span>
+  </button>
+
+  <!-- Chat Window -->
+  <div id="chat-window" style="position: absolute; bottom: 80px; right: 0; width: 350px; height: 500px; background: #fff; border-radius: 20px; box-shadow: 0 12px 48px rgba(0,0,0,0.2); display: none; flex-direction: column; overflow: hidden; border: 1px solid var(--border); animation: slideUp 0.4s var(--ease);">
+    <!-- Chat Header -->
+    <div style="background: #1a1a1a; color: #fff; padding: 20px; display: flex; align-items: center; gap: 12px;">
+      <div style="width: 40px; height: 40px; background: rgba(255,255,255,0.1); border-radius: 20px; display: flex; align-items: center; justify-content: center; font-size: 20px;">🤖</div>
+      <div>
+        <div style="font-weight: 800; font-size: 16px;">EventVault AI</div>
+        <div style="font-size: 11px; opacity: 0.8;">Online | Ready to help</div>
+      </div>
+    </div>
+
+    <!-- Chat Messages -->
+    <div id="chat-messages" style="flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; background: #f8fafc;">
+      <div style="align-self: flex-start; background: #fff; padding: 12px 16px; border-radius: 16px 16px 16px 4px; font-size: 14px; line-height: 1.5; box-shadow: 0 2px 8px rgba(0,0,0,0.05); max-width: 85%;">
+        Hello! I'm your EventVault assistant. How can I help you today?
+      </div>
+    </div>
+
+    <!-- Chat Input -->
+    <div style="padding: 16px; border-top: 1px solid var(--border); display: flex; gap: 8px; background: #fff;">
+      <input type="text" id="chat-input" placeholder="Type your question..." style="flex: 1; border: 1px solid var(--border); border-radius: 10px; padding: 10px 14px; font-size: 14px; outline: none; font-family: 'Nunito', sans-serif;">
+      <button id="chat-send" style="background: #1a1a1a; color: #fff; border: none; width: 40px; height: 40px; border-radius: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.3s;">
+        <span>➤</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+// Chatbot Logic
+const chatbotToggle = document.getElementById('chatbot-toggle');
+const chatWindow = document.getElementById('chat-window');
+const chatbotIcon = document.getElementById('chatbot-icon');
+const chatbotCloseIcon = document.getElementById('chatbot-close-icon');
+const chatbotGreeting = document.getElementById('chatbot-greeting');
+const chatInput = document.getElementById('chat-input');
+const chatSend = document.getElementById('chat-send');
+const chatMessages = document.getElementById('chat-messages');
+
+chatbotToggle.addEventListener('click', () => {
+  const isOpen = chatWindow.style.display === 'flex';
+  chatWindow.style.display = isOpen ? 'none' : 'flex';
+  chatbotIcon.style.display = isOpen ? 'block' : 'none';
+  chatbotCloseIcon.style.display = isOpen ? 'none' : 'block';
+  chatbotGreeting.style.display = isOpen ? 'block' : 'none';
+  if (!isOpen) chatInput.focus();
+});
+
+async function sendMessage() {
+  const text = chatInput.value.trim();
+  if (!text) return;
+
+  // Get user info if available
+  const email = sessionStorage.getItem('user_email');
+  const usn = sessionStorage.getItem('user_usn');
+
+  // Add user message
+  appendMessage(text, 'user');
+  chatInput.value = '';
+
+  // Show typing indicator
+  const typingId = 'typing-' + Date.now();
+  appendMessage('<span class="spinner spinner-dark"></span> Thinking...', 'bot', typingId);
+  chatMessages.scrollTop = chatMessages.scrollHeight;
+
+  try {
+    const res = await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: text, email, usn })
+    });
+    const data = await res.json();
+    
+    // Remove typing indicator and add bot response
+    const typingEl = document.getElementById(typingId);
+    if (typingEl) typingEl.remove();
+    appendMessage(data.reply, 'bot');
+  } catch (e) {
+    const typingEl = document.getElementById(typingId);
+    if (typingEl) typingEl.remove();
+    appendMessage("I'm sorry, I'm having trouble connecting right now. Please try again later.", 'bot');
+  }
+  chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+function appendMessage(text, side, id) {
+  const msg = document.createElement('div');
+  if (id) msg.id = id;
+  msg.style.alignSelf = side === 'user' ? 'flex-end' : 'flex-start';
+  msg.style.background = side === 'user' ? '#1a1a1a' : '#fff';
+  msg.style.color = side === 'user' ? '#fff' : 'var(--text)';
+  msg.style.padding = '12px 16px';
+  msg.style.borderRadius = side === 'user' ? '16px 16px 4px 16px' : '16px 16px 16px 4px';
+  msg.style.fontSize = '14px';
+  msg.style.lineHeight = '1.5';
+  msg.style.boxShadow = '0 2px 8px rgba(0,0,0,0.05)';
+  msg.style.maxWidth = '85%';
+  msg.style.wordBreak = 'break-word';
+  msg.innerHTML = text;
+  chatMessages.appendChild(msg);
+  chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+chatSend.addEventListener('click', sendMessage);
+chatInput.addEventListener('keypress', (e) => {
+  if (e.key === 'Enter') sendMessage();
+});
+
+function toast(msg, type = 'info') {
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  el.innerHTML = `<span>${type==='success'?'✅':type==='error'?'❌':'ℹ️'}</span><span>${msg}</span>`;
+  document.getElementById('toasts').appendChild(el);
+  setTimeout(() => el.remove(), 4000);
+}
+
+const API = '/api';
+const params = new URLSearchParams(window.location.search);
+const category = params.get('cat') || 'General';
+let currentScope = 'inhouse'; // Always inhouse
+let allEvents = [];
+
+document.getElementById('category-name').textContent = category;
+
+async function loadEvents() {
+  try {
+    const r = await fetch(API + '/events');
+    allEvents = await r.json();
+    renderEvents();
+  } catch(e) { console.error(e); }
+}
+
+function linkify(text) {
+  if (!text) return '';
+  const urlRegex = /(https?:\/\/[^\s]+)/g;
+  return text.replace(urlRegex, function(url) {
+    return '<a href="' + url + '" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()" style="color:var(--accent); text-decoration:underline;">' + url + '</a>';
+  });
+}
+
+function renderEvents() {
+  const now = new Date();
+  const list = allEvents.filter(e => 
+    (e.category || '').toLowerCase() === category.toLowerCase() && 
+    (e.scope || 'inhouse') === 'inhouse' &&
+    new Date(e.date).setHours(23, 59, 59, 999) >= now
+  );
+
+  const grid = document.getElementById('events-grid');
+  if (!list.length) {
+    grid.innerHTML = `<div class="empty-state">
+      <div class="empty-icon">📅</div>
+      <div style="font-size:18px; font-weight:600;">No events found for ${category}</div>
+      <p style="color:var(--text2); margin-top:8px;">Check back later!</p>
+    </div>`;
+    return;
+  }
+
+  const imageMap = {
+    'technical': 'https://images.unsplash.com/photo-1504384308090-c894fdcc538d?auto=format&fit=crop&w=800&q=80',
+    'sports': 'https://images.unsplash.com/photo-1517649763962-0c623066013b?auto=format&fit=crop&w=800&q=80',
+    'cultural': 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?auto=format&fit=crop&w=800&q=80',
+    'academic': 'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?auto=format&fit=crop&w=800&q=80',
+    'academics': 'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?auto=format&fit=crop&w=800&q=80',
+    'education': 'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?auto=format&fit=crop&w=800&q=80',
+    'community': 'https://images.unsplash.com/photo-1517048676732-d65bc937f952?auto=format&fit=crop&w=800&q=80',
+    'community-based': 'https://images.unsplash.com/photo-1517048676732-d65bc937f952?auto=format&fit=crop&w=800&q=80',
+    'community based': 'https://images.unsplash.com/photo-1517048676732-d65bc937f952?auto=format&fit=crop&w=800&q=80',
+    'general': 'https://images.unsplash.com/photo-1501281668745-f7f57925c3b4?auto=format&fit=crop&w=800&q=80'
+  };
+
+  grid.innerHTML = list.map(ev => {
+    // Ensure we always have a background image with case-insensitive lookup
+    const lookupCat = (ev.category || 'general').trim().toLowerCase();
+    const eventImg = imageMap[lookupCat] || imageMap['general'];
+    const evDate = new Date(ev.date);
+    
+    const isClosed = ev.registrationStatus === 'closed';
+    const regBtnText = isClosed ? '🔒 Registration Closed' : 'Register Now →';
+    const regBtnStyle = isClosed ? 'background:#6b7280; opacity:0.8; cursor:not-allowed;' : '';
+
+    return `
+    <div class="event-card" ${isClosed ? '' : `onclick="window.location.href='/choice.html?id=${ev.eventId}'"`} style="--bg-img: url('${eventImg}'); ${isClosed ? 'cursor:default;' : ''}">
+      <div class="event-card-top">
+        <div class="event-card-cat">${ev.category}</div>
+        <h3>${ev.title}</h3>
+        <div class="event-meta">
+          <div class="event-meta-item"><span>📅</span> ${evDate.toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short',year:'numeric'})}</div>
+          <div class="event-meta-item"><span>🕐</span> ${ev.time}</div>
+          <div class="event-meta-item"><span>📍</span> ${ev.location}</div>
+          <div class="event-meta-item"><span>👥</span> ${(ev.teamMode || '').trim().toLowerCase() === 'team' ? `Team Based Participation- Team Size: ${ev.teamSize || 'N/A'}` : 'Individual Participation'}</div>
+        </div>
+        <div style="font-size:13px; color:var(--text2); line-height:1.5; margin-bottom:16px; height: 40px; overflow: hidden;">${linkify(ev.description) || 'No description provided.'}</div>
+        <button class="btn btn-primary" onclick="event.stopPropagation(); ${isClosed ? '' : `window.location.href='/choice.html?id=${ev.eventId}'`}" style="width:100%; justify-content:center; ${regBtnStyle}" ${isClosed ? 'disabled' : ''}>${regBtnText}</button>
+      </div>
+    </div>
+  `}).join('');
+}
+
+loadEvents();
+</script>
+</body>
+</html>

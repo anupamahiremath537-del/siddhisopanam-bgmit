@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Supportive Teams — EventVault</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:ital,wght@0,300;0,400;0,600;0,700;0,800;1,400&family=Space+Mono:wght@400;700&family=Fraunces:ital,wght@0,700;1,400&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #fafaf8;
+  --surface: #ffffff;
+  --surface2: #f4f3ef;
+  --border: #e8e6df;
+  --text: #1a1916;
+  --text2: #6b6860;
+  --text3: #b0aea8;
+  --accent: #2d5be3;
+  --accent2: #e35d2d;
+  --accent3: #2da868;
+  --accent4: #e3a82d;
+  --radius: 16px;
+  --shadow: 0 4px 24px rgba(0,0,0,0.08);
+  --shadow-lg: 0 12px 40px rgba(0,0,0,0.12);
+  --ease: cubic-bezier(0.4, 0, 0.2, 1);
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:var(--bg); color:var(--text); font-family:'Nunito',sans-serif; overflow-x: hidden; }
+a { color:inherit; text-decoration:none; }
+
+header {
+  background:rgba(255, 255, 255, 0.8); backdrop-filter: blur(12px); 
+  border-bottom:1px solid var(--border);
+  position:sticky; top:0; z-index:100; padding:0 40px;
+}
+.header-inner { display:flex; align-items:center; justify-content:space-between; height:64px; max-width:1200px; margin:0 auto; }
+.logo { font-family:'Fraunces',serif; font-size:22px; font-weight:700; letter-spacing:-0.5px; }
+.logo span { color:var(--accent); }
+
+.container { max-width:1200px; margin:0 auto; padding:40px; }
+.section { padding:24px 0; }
+.section-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:32px; }
+.section-title { font-family:'Fraunces',serif; font-size:28px; font-weight:700; position: relative; }
+.section-title::after { content: ''; position: absolute; bottom: -8px; left: 0; width: 40px; height: 4px; background: var(--accent); border-radius: 2px; }
+.section-title em { color:var(--accent); font-style:italic; }
+
+.btn { display:inline-flex; align-items:center; gap:6px; padding:9px 20px; border-radius:10px; font-family:'Nunito',sans-serif; font-weight:700; font-size:14px; cursor:pointer; transition:all 0.3s var(--ease); border:none; text-decoration:none; }
+.btn-primary { background:var(--accent); color:#fff; }
+.btn-primary:hover { background:#2450cc; transform:translateY(-2px); box-shadow:0 6px 20px rgba(45,91,227,0.3); }
+
+/* TEAM CARDS */
+.teams-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:24px; }
+.team-card {
+  background: #ffffff;
+  border: 1px solid var(--border); border-radius: 20px;
+  overflow:hidden; transition:all 0.5s var(--ease);
+  position:relative; display:flex; flex-direction:column;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.04);
+}
+.team-card:hover { transform:translateY(-8px); box-shadow: 0 20px 48px rgba(45,91,227,0.12); }
+.team-card-top { padding:24px; flex-grow:1; position: relative; z-index: 1; }
+.team-card h3 { font-size:22px; font-weight:800; line-height:1.2; margin-bottom:12px; font-family: 'Fraunces', serif; }
+.team-desc { font-size:14px; color:var(--text2); line-height:1.6; margin-bottom:20px; }
+.team-meta { display:flex; flex-direction:column; gap:8px; margin-bottom:16px; }
+.team-meta-item { display:flex; align-items:center; gap:8px; font-size:13px; color:var(--text2); font-family:'Space Mono',monospace; font-weight:700; }
+
+.team-card-bottom { padding:16px 24px; background: rgba(0,0,0,0.02); border-top:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; }
+.slots-count { font-weight: 800; font-size: 11px; background: rgba(45,91,227,0.08); padding: 5px 12px; border-radius: 8px; }
+
+/* MODAL */
+.modal-overlay { 
+  display:none; position:fixed; inset:0; background:rgba(0,0,0,0.4); z-index:200; 
+  backdrop-filter:blur(10px); align-items:center; justify-content:center; padding:20px;
+}
+.modal-overlay.open { display:flex; }
+.modal { 
+  background:var(--surface); border-radius:24px; width:100%; max-width:600px; 
+  max-height:90vh; overflow-y:auto; box-shadow:var(--shadow-lg);
+}
+.modal-hero { background:linear-gradient(135deg,#1a2d6b,#2d5be3); padding:32px; color:#fff; border-radius:24px 24px 0 0; position: relative; }
+.modal-hero h2 { font-family:'Fraunces',serif; font-size:24px; font-weight:700; }
+.modal-close { float:right; background:rgba(255,255,255,0.15); border:none; color:#fff; border-radius:10px; padding:6px 12px; cursor:pointer; font-size:18px; }
+.modal-body { padding:32px; }
+
+.form-group { margin-bottom:20px; }
+.form-group label { display:block; font-size:12px; font-weight:700; color:var(--text2); margin-bottom:8px; letter-spacing:1px; text-transform:uppercase; }
+.form-group input, .form-group select { width:100%; background:var(--surface2); border:2px solid transparent; border-radius:12px; padding:12px 16px; color:var(--text); font-family:'Nunito',sans-serif; font-size:15px; outline:none; transition:all 0.3s var(--ease); }
+.form-group input:focus { border-color:var(--accent); background: #fff; }
+
+.role-list { display:flex; flex-direction:column; gap:10px; margin-top:12px; }
+.role-option { display:flex; align-items:center; justify-content:space-between; padding:14px 20px; border:2px solid var(--border); border-radius:14px; cursor:pointer; transition:all 0.3s var(--ease); }
+.role-option.selected { border-color:var(--accent); background:#eff2ff; }
+.role-option.disabled { opacity:0.5; cursor:not-allowed; }
+
+.toast-container { position:fixed; top:24px; right:24px; z-index:999; display:flex; flex-direction:column; gap:12px; }
+.toast { background:#fff; border:1px solid var(--border); border-radius:16px; padding:16px 20px; font-size:14px; min-width:320px; box-shadow:var(--shadow); display:flex; align-items:center; gap:12px; border-left: 6px solid var(--accent); }
+
+.spinner { display:inline-block; width:14px; height:14px; border:2px solid rgba(255,255,255,0.4); border-top-color:#fff; border-radius:50%; animation:spin 0.7s linear infinite; }
+@keyframes spin { to { transform:rotate(360deg); } }
+
+@media(max-width:768px) {
+  header { padding:0 16px; }
+  .header-inner { height: 60px; }
+  .logo { font-size: 18px; }
+  .container { padding: 16px; }
+  .section { padding: 16px 0; }
+  .section-header { margin-bottom: 24px; }
+  .section-title { font-size: 22px; }
+  .teams-grid { grid-template-columns: 1fr; gap: 16px; }
+  .team-card-top { padding: 20px; }
+  .team-card h3 { font-size: 20px; }
+  .btn { padding: 12px 24px; font-size: 15px; width: 100%; justify-content: center; }
+  .btn-sm { width: auto; padding: 8px 16px; }
+  
+  .modal { width: 95%; max-height: 85vh; border-radius: 16px; }
+  .modal-hero { padding: 24px; }
+  .modal-hero h2 { font-size: 20px; }
+  .modal-body { padding: 20px; }
+  .form-group { margin-bottom: 16px; }
+  .form-group input, .form-group select { padding: 10px 12px; font-size: 14px; }
+  .role-option { padding: 12px 16px; }
+  
+  div[style*="grid-template-columns:1fr 1fr"] {
+    grid-template-columns: 1fr !important;
+    gap: 0 !important;
+  }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div class="logo">Event<span>Vault</span></div>
+    <a href="index.html" class="btn btn-primary btn-sm">← Home</a>
+  </div>
+</header>
+
+<div class="container">
+  <section class="section">
+    <div class="section-header">
+      <div class="section-title">Supportive <em>Teams</em></div>
+    </div>
+
+    <div class="teams-grid" id="teams-grid">
+      <div style="grid-column: 1 / -1; text-align: center; padding: 40px;">Loading teams...</div>
+    </div>
+  </section>
+</div>
+
+<!-- REGISTRATION MODAL -->
+<div class="modal-overlay" id="signup-modal">
+  <div class="modal">
+    <div class="modal-hero">
+      <button class="modal-close" onclick="closeSignup()">✕</button>
+      <h2 id="modal-team-name"></h2>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="modal-team-id">
+      
+      <div id="role-section" class="form-group">
+        <label>Choose a volunteer role</label>
+        <div class="role-list" id="role-list"></div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:20px">
+        <div class="form-group"><label>Full Name *</label><input type="text" id="reg-name" placeholder="Your name"></div>
+        <div class="form-group"><label>EMAIL *</label><input type="email" id="reg-email" placeholder="your@email.com"></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div class="form-group"><label>USN (REG NO.) *</label><input type="text" id="reg-usn" placeholder="Enter USN or REG NO."></div>
+        <div class="form-group"><label>Phone Number *</label><input type="tel" id="reg-phone" placeholder="+91 XXXXXXXXXX"></div>
+      </div>
+
+      <div class="form-group" style="margin-top:10px">
+        <label>Upload Photo (Max 100KB) *</label>
+        <div style="display:flex; gap:12px; align-items:center;">
+          <div id="photo-preview" style="width:60px; height:60px; border-radius:10px; border:2px dashed var(--border); background:#f9f9f9; display:flex; align-items:center; justify-content:center; overflow:hidden; flex-shrink:0;">
+            <span style="font-size:24px; opacity:0.3;">👤</span>
+          </div>
+          <div style="flex:1">
+            <input type="file" id="reg-photo" accept="image/*" onchange="previewPhoto(this)" style="font-size:12px; width:100%;">
+          </div>
+        </div>
+      </div>
+
+      <!-- OTP FIELD -->
+      <div id="signup-otp-container" style="display:none; margin-top:16px; padding:16px; background:#f0f4ff; border-radius:12px; border:2px solid var(--accent)">
+        <label style="display:block; font-size:11px; font-weight:700; color:var(--accent); margin-bottom:8px; text-transform:uppercase">Enter 6-Digit Code</label>
+        <input type="text" id="reg-otp" placeholder="000000" maxlength="6" style="text-align:center; letter-spacing:8px; font-size:24px; font-weight:bold; width:100%; border:none; background:none; outline:none">
+      </div>
+
+      <div id="signup-error" style="color:#dc2626;font-size:13px;margin-top:12px;margin-bottom:12px;"></div>
+      <button class="btn btn-primary" style="width:100%;padding:14px;font-size:15px;justify-content:center" id="signup-main-btn" onclick="handleSignupClick()">
+        <span id="signup-btn-text">Confirm Registration</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<div class="toast-container" id="toasts"></div>
+
+<!-- CHATBOT UI -->
+<div id="chatbot-container" style="position: fixed; bottom: 24px; right: 24px; z-index: 1000; font-family: 'Nunito', sans-serif; display: flex; flex-direction: column; align-items: flex-end; gap: 12px;">
+  <!-- Greeting Bubble -->
+  <div id="chatbot-greeting" style="background: #1a1a1a; color: #fff; padding: 10px 18px; border-radius: 15px 15px 0 15px; font-size: 13px; font-weight: 700; box-shadow: 0 4px 15px rgba(0,0,0,0.1); animation: fadeIn 0.5s var(--ease); white-space: nowrap;">
+    Hey!! How can<br>I help you.....
+  </div>
+
+  <!-- Chatbot Toggle Button -->
+  <button id="chatbot-toggle" style="width: 60px; height: 60px; border-radius: 30px; background: #1a1a1a; color: #fff; border: none; cursor: pointer; box-shadow: 0 8px 32px rgba(0,0,0,0.2); display: flex; align-items: center; justify-content: center; transition: all 0.3s var(--ease); position: relative;">
+    <span id="chatbot-icon" style="font-size: 28px;">🤖</span>
+    <span id="chatbot-close-icon" style="font-size: 24px; display: none;">✕</span>
+  </button>
+
+  <!-- Chat Window -->
+  <div id="chat-window" style="position: absolute; bottom: 80px; right: 0; width: 350px; height: 500px; background: #fff; border-radius: 20px; box-shadow: 0 12px 48px rgba(0,0,0,0.2); display: none; flex-direction: column; overflow: hidden; border: 1px solid var(--border); animation: slideUp 0.4s var(--ease);">
+    <!-- Chat Header -->
+    <div style="background: #1a1a1a; color: #fff; padding: 20px; display: flex; align-items: center; gap: 12px;">
+      <div style="width: 40px; height: 40px; background: rgba(255,255,255,0.1); border-radius: 20px; display: flex; align-items: center; justify-content: center; font-size: 20px;">🤖</div>
+      <div>
+        <div style="font-weight: 800; font-size: 16px;">EventVault AI</div>
+        <div style="font-size: 11px; opacity: 0.8;">Online | Ready to help</div>
+      </div>
+    </div>
+
+    <!-- Chat Messages -->
+    <div id="chat-messages" style="flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; background: #f8fafc;">
+      <div style="align-self: flex-start; background: #fff; padding: 12px 16px; border-radius: 16px 16px 16px 4px; font-size: 14px; line-height: 1.5; box-shadow: 0 2px 8px rgba(0,0,0,0.05); max-width: 85%;">
+        Hello! I'm your EventVault assistant. How can I help you today?
+      </div>
+    </div>
+
+    <!-- Chat Input -->
+    <div style="padding: 16px; border-top: 1px solid var(--border); display: flex; gap: 8px; background: #fff;">
+      <input type="text" id="chat-input" placeholder="Type your question..." style="flex: 1; border: 1px solid var(--border); border-radius: 10px; padding: 10px 14px; font-size: 14px; outline: none; font-family: 'Nunito', sans-serif;">
+      <button id="chat-send" style="background: #1a1a1a; color: #fff; border: none; width: 40px; height: 40px; border-radius: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.3s;">
+        <span>➤</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+// Chatbot Logic
+const chatbotToggle = document.getElementById('chatbot-toggle');
+const chatWindow = document.getElementById('chat-window');
+const chatbotIcon = document.getElementById('chatbot-icon');
+const chatbotCloseIcon = document.getElementById('chatbot-close-icon');
+const chatbotGreeting = document.getElementById('chatbot-greeting');
+const chatInput = document.getElementById('chat-input');
+const chatSend = document.getElementById('chat-send');
+const chatMessages = document.getElementById('chat-messages');
+
+chatbotToggle.addEventListener('click', () => {
+  const isOpen = chatWindow.style.display === 'flex';
+  chatWindow.style.display = isOpen ? 'none' : 'flex';
+  chatbotIcon.style.display = isOpen ? 'block' : 'none';
+  chatbotCloseIcon.style.display = isOpen ? 'none' : 'block';
+  chatbotGreeting.style.display = isOpen ? 'block' : 'none';
+  if (!isOpen) chatInput.focus();
+});
+
+async function sendMessage() {
+  const text = chatInput.value.trim();
+  if (!text) return;
+
+  // Get user info if available
+  const email = sessionStorage.getItem('user_email');
+  const usn = sessionStorage.getItem('user_usn');
+
+  // Add user message
+  appendMessage(text, 'user');
+  chatInput.value = '';
+
+  // Show typing indicator
+  const typingId = 'typing-' + Date.now();
+  appendMessage('<span class="spinner spinner-dark"></span> Thinking...', 'bot', typingId);
+  chatMessages.scrollTop = chatMessages.scrollHeight;
+
+  try {
+    const res = await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: text, email, usn })
+    });
+    const data = await res.json();
+    
+    // Remove typing indicator and add bot response
+    const typingEl = document.getElementById(typingId);
+    if (typingEl) typingEl.remove();
+    appendMessage(data.reply, 'bot');
+  } catch (e) {
+    const typingEl = document.getElementById(typingId);
+    if (typingEl) typingEl.remove();
+    appendMessage("I'm sorry, I'm having trouble connecting right now. Please try again later.", 'bot');
+  }
+  chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+function appendMessage(text, side, id) {
+  const msg = document.createElement('div');
+  if (id) msg.id = id;
+  msg.style.alignSelf = side === 'user' ? 'flex-end' : 'flex-start';
+  msg.style.background = side === 'user' ? '#1a1a1a' : '#fff';
+  msg.style.color = side === 'user' ? '#fff' : 'var(--text)';
+  msg.style.padding = '12px 16px';
+  msg.style.borderRadius = side === 'user' ? '16px 16px 4px 16px' : '16px 16px 16px 4px';
+  msg.style.fontSize = '14px';
+  msg.style.lineHeight = '1.5';
+  msg.style.boxShadow = '0 2px 8px rgba(0,0,0,0.05)';
+  msg.style.maxWidth = '85%';
+  msg.style.wordBreak = 'break-word';
+  msg.innerHTML = text;
+  chatMessages.appendChild(msg);
+  chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+chatSend.addEventListener('click', sendMessage);
+chatInput.addEventListener('keypress', (e) => {
+  if (e.key === 'Enter') sendMessage();
+});
+
+const API = '/api';
+let allTeams = [], currentTeam = null, selectedRoleId = null, signupStep = 'form', signupPhotoBase64 = null;
+
+async function loadTeams() {
+  try {
+    const r = await fetch(API + '/events?isSupportiveTeam=true');
+    allTeams = await r.json();
+    renderTeams();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+function renderTeams() {
+  const grid = document.getElementById('teams-grid');
+  if (!allTeams.length) { 
+    grid.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; padding: 60px; color: #6b6860;">No supportive teams found.</div>'; 
+    return; 
+  }
+
+  grid.innerHTML = allTeams.map(t => {
+    const totalSlots = (t.roles || []).reduce((s, r) => s + r.slots, 0);
+    const remainingSlots = (t.roles || []).reduce((s, r) => s + r.remaining, 0);
+    
+    return `
+    <div class="team-card">
+      <div class="team-card-top">
+        <h3>${t.title}</h3>
+        <p class="team-desc">${t.description || 'Join our team to help make the event a success!'}</p>
+        <div class="team-meta">
+          <div class="team-meta-item">📍 ${t.location}</div>
+        </div>
+        <button class="btn btn-primary" style="width:100%; justify-content:center;" onclick="openSignup('${t.eventId}')">Register Now</button>
+      </div>
+      <div class="team-card-bottom">
+        <div class="slots-count">${remainingSlots} / ${totalSlots} slots available</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function openSignup(teamId) {
+  try {
+    const team = allTeams.find(t => t.eventId === teamId);
+    if (!team) return;
+    currentTeam = team;
+    selectedRoleId = null;
+    signupStep = 'form';
+    signupPhotoBase64 = null;
+    
+    document.getElementById('modal-team-id').value = teamId;
+    document.getElementById('modal-team-name').textContent = team.title;
+    document.getElementById('signup-otp-container').style.display = 'none';
+    document.getElementById('signup-btn-text').textContent = 'Send Verification Code';
+    document.getElementById('signup-error').textContent = '';
+    document.getElementById('reg-photo').value = '';
+    document.getElementById('photo-preview').innerHTML = '<span style="font-size:24px; opacity:0.3;">👤</span>';
+    
+    renderRoles(team.roles || []);
+    document.getElementById('signup-modal').classList.add('open');
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+function closeSignup() { document.getElementById('signup-modal').classList.remove('open'); }
+
+function renderRoles(roles) {
+  document.getElementById('role-list').innerHTML = roles.map(r => `
+    <div class="role-option ${r.remaining === 0 ? 'disabled' : ''}" id="role-opt-${r.id}" onclick="selectRole('${r.id}',${r.remaining === 0})">
+      <div>
+        <div style="font-weight:700;">${r.name}</div>
+        <div style="font-size:12px; color:var(--text2);">${r.remaining} slots available</div>
+      </div>
+      <div style="font-size:18px">${r.remaining === 0 ? '🚫' : ''}</div>
+    </div>`).join('');
+}
+
+function selectRole(id, disabled) {
+  if (disabled) return;
+  selectedRoleId = id;
+  document.querySelectorAll('.role-option').forEach(el => el.classList.remove('selected'));
+  document.getElementById('role-opt-' + id)?.classList.add('selected');
+}
+
+function previewPhoto(input) {
+  const preview = document.getElementById('photo-preview');
+  const errEl = document.getElementById('signup-error');
+  if (input.files && input.files[0]) {
+    const file = input.files[0];
+    if (file.size > 102400) {
+      errEl.textContent = '⚠ Photo must be 100KB or smaller';
+      input.value = '';
+      preview.innerHTML = '<span style="font-size:24px; opacity:0.3;">👤</span>';
+      signupPhotoBase64 = null;
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      preview.innerHTML = `<img src="${e.target.result}" style="width:100%; height:100%; object-fit:cover;">`;
+      signupPhotoBase64 = e.target.result;
+      errEl.textContent = '';
+    };
+    reader.readAsDataURL(file);
+  }
+}
+
+async function handleSignupClick() {
+  if (signupStep === 'form') await sendOTP();
+  else await submitSignup();
+}
+
+async function sendOTP() {
+  const email = document.getElementById('reg-email').value.trim();
+  const name = document.getElementById('reg-name').value.trim();
+  const usn = document.getElementById('reg-usn').value.trim();
+  const phone = document.getElementById('reg-phone').value.trim();
+  const errEl = document.getElementById('signup-error');
+  
+  if (!name || !email || !usn || !phone) { errEl.textContent = '⚠ All fields are required'; return; }
+  if (!selectedRoleId) { errEl.textContent = '⚠ Please select a role'; return; }
+  if (!signupPhotoBase64) { errEl.textContent = '⚠ Photo is required'; return; }
+
+  errEl.textContent = '';
+  document.getElementById('signup-btn-text').innerHTML = '<span class="spinner"></span> Sending...';
+  try {
+    const res = await fetch(API + '/auth/send-otp', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email })
+    });
+    if (!res.ok) throw new Error((await res.json()).error);
+    signupStep = 'otp';
+    document.getElementById('signup-otp-container').style.display = 'block';
+    document.getElementById('signup-btn-text').textContent = 'Verify & Register';
+    toast('OTP sent to your email', 'success');
+  } catch(e) { 
+    errEl.textContent = '⚠ ' + e.message; 
+    document.getElementById('signup-btn-text').textContent = 'Send Verification Code';
+  }
+}
+
+async function submitSignup() {
+  const email = document.getElementById('reg-email').value.trim();
+  const otp = document.getElementById('reg-otp').value.trim();
+  const name = document.getElementById('reg-name').value.trim();
+  const usn = document.getElementById('reg-usn').value.trim();
+  const phone = document.getElementById('reg-phone').value.trim();
+  const errEl = document.getElementById('signup-error');
+
+  errEl.textContent = '';
+  document.getElementById('signup-main-btn').disabled = true;
+  document.getElementById('signup-btn-text').innerHTML = '<span class="spinner"></span> Verifying...';
+  
+  try {
+    // 1. Verify OTP
+    const vRes = await fetch(API + '/auth/verify-otp', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, otp })
+    });
+    if (!vRes.ok) throw new Error((await vRes.json()).error);
+
+    // 2. Submit Registration
+    const regRes = await fetch(API + '/registrations', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        eventId: currentTeam.eventId,
+        name, email, usn, phone,
+        type: 'volunteer',
+        roleId: selectedRoleId,
+        photo: signupPhotoBase64
+      })
+    });
+    if (!regRes.ok) throw new Error((await regRes.json()).error);
+
+    toast('Successfully registered!', 'success');
+    closeSignup();
+    loadTeams();
+  } catch(e) {
+    errEl.textContent = '⚠ ' + e.message;
+    document.getElementById('signup-btn-text').textContent = 'Verify & Register';
+  } finally {
+    document.getElementById('signup-main-btn').disabled = false;
+  }
+}
+
+function toast(msg, type = 'info') {
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  el.innerHTML = `<span>${type==='success'?'✅':type==='error'?'❌':'ℹ️'}</span><span>${msg}</span>`;
+  document.getElementById('toasts').appendChild(el);
+  setTimeout(() => el.remove(), 4000);
+}
+
+loadTeams();
+</script>
+</body>
+</html>
