@@ -299,6 +299,29 @@ router.post('/', async (req, res) => {
       photo: req.body.photo || null
     });
 
+    // Send confirmation email (non-blocking)
+    const subject = `Registration Received: ${event.title}`;
+    const text = `Hello ${name.trim()},\n\nThank you for registering for "${event.title}" as a ${type}${roleName ? ` (${roleName})` : ''}.\n\nYour registration is currently pending approval. We will notify you once it is confirmed.\n\nBest regards,\nBGMIT Event Team`;
+    
+    const html = `
+      <div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #eee; border-radius: 12px;">
+        <h2 style="color: #1a2d6b;">Registration Received!</h2>
+        <p>Hello <strong>${name.trim()}</strong>,</p>
+        <p>Thank you for registering for <strong>${event.title}</strong>.</p>
+        <div style="background: #f8fafc; padding: 15px; border-radius: 8px; margin: 20px 0;">
+          <p style="margin: 5px 0;"><strong>Type:</strong> ${type.toUpperCase()}</p>
+          ${roleName ? `<p style="margin: 5px 0;"><strong>Role:</strong> ${roleName}</p>` : ''}
+          ${finalTeamName ? `<p style="margin: 5px 0;"><strong>Team:</strong> ${finalTeamName}</p>` : ''}
+          <p style="margin: 5px 0;"><strong>Status:</strong> Pending Approval</p>
+        </div>
+        <p>We will notify you via email once your registration has been approved by the organizer.</p>
+        <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
+        <p style="font-size: 12px; color: #64748b;">This is an automated message from BGMIT EventVault.</p>
+      </div>
+    `;
+
+    emailUtil.sendEmail(email.toLowerCase().trim(), subject, text, html).catch(err => console.error('[Registration Email Error]', err));
+
     res.status(201).json({ ...reg, eventTitle: event.title });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -603,8 +626,26 @@ router.post('/broadcast', authMiddleware, async (req, res) => {
       if (targetMethods.includes('email')) {
         const emails = [...new Set(registrations.map(r => r.email).filter(e => !!e))];
         console.log(`[Broadcast Task] Email sending to ${emails.length} unique addresses...`);
-        const subject = eventId ? `Broadcast Message for Event: ${eventId}` : 'Broadcast Message - BGMIT';
-        const results = await emailUtil.sendBroadcast(emails, subject, message);
+        const subject = eventId ? `Important Update: ${eventId}` : 'Official Announcement - BGMIT';
+        
+        const html = `
+          <div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #eee; border-radius: 12px;">
+            <div style="text-align: center; margin-bottom: 20px;">
+              <h2 style="color: #1a2d6b; margin: 0;">EventVault Broadcast</h2>
+              <p style="color: #64748b; font-size: 14px;">BGMIT Event Management System</p>
+            </div>
+            <div style="background: #f8fafc; padding: 25px; border-radius: 8px; line-height: 1.6; color: #1e293b; font-size: 16px;">
+              ${message.replace(/\n/g, '<br>')}
+            </div>
+            <div style="margin-top: 25px; text-align: center;">
+              <p style="font-size: 14px; color: #64748b;">Best regards,<br><strong>BGMIT Event Team</strong></p>
+              <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
+              <p style="font-size: 11px; color: #94a3b8;">You are receiving this because you are registered for an event on EventVault. If you believe this is a mistake, please contact your event organizer.</p>
+            </div>
+          </div>
+        `;
+
+        const results = await emailUtil.sendBroadcast(emails, subject, message, html);
         console.log(`[Broadcast Task] Email completed. Success: ${results.success}, Failure: ${results.failure}`);
       }
     } catch (err) {
