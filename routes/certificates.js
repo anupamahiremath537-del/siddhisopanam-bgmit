@@ -95,10 +95,7 @@ router.post('/send', authMiddleware, adminOnly, async (req, res) => {
         try {
           // Prepare data for PDF generator
           const pdfData = {
-<<<<<<< HEAD
             registrationId: cert._id,
-=======
->>>>>>> d5586702609478d91f799e3d928811350adb99b4
             name: cert.name,
             eventTitle: `${cert.achievement || cert.category}${cert.place ? ` (${cert.place} Place)` : ''}`,
             eventDate: cert.academicYear,

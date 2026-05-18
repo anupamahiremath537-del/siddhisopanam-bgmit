@@ -40,16 +40,11 @@ router.get('/overview', authMiddleware, async (req, res) => {
     const upcomingEvents = activeEvents.filter(e => new Date(e.date + 'T' + (e.time || '00:00')) > now).length;
     const pastEvents = activeEvents.filter(e => new Date(e.date + 'T' + (e.time || '00:00')) <= now).length;
 
-<<<<<<< HEAD
     // Volunteer coverage per event - Optimized with Map to avoid O(N^2) complexity
-=======
-    // Volunteer coverage per event - Select minimal fields to avoid timeout
->>>>>>> d5586702609478d91f799e3d928811350adb99b4
     let totalSlots = 0, filledSlots = 0;
     const regFields = 'eventid,roleid,type';
     const regsForCoverage = await db.find('registrations', baseRegQuery, { select: regFields });
 
-<<<<<<< HEAD
     // Group registrations by event and role
     const regMap = new Map();
     regsForCoverage.forEach(r => {
@@ -63,12 +58,6 @@ router.get('/overview', authMiddleware, async (req, res) => {
         totalSlots += role.slots;
         const key = `${ev.eventId}_${role.id}`;
         const filled = regMap.get(key) || 0;
-=======
-    activeEvents.forEach(ev => {
-      (ev.volunteerRoles || []).forEach(role => {
-        totalSlots += role.slots;
-        const filled = regsForCoverage.filter(r => r.eventId === ev.eventId && r.roleId === role.id && r.type === 'volunteer').length;
->>>>>>> d5586702609478d91f799e3d928811350adb99b4
         filledSlots += Math.min(filled, role.slots);
       });
     });
@@ -103,7 +92,6 @@ router.get('/events', authMiddleware, async (req, res) => {
     const regFields = 'eventid,roleid,type,status,checkedin,noshow';
     let regs = await db.find('registrations', regQuery, { select: regFields });
 
-<<<<<<< HEAD
     // Group registrations by event for O(1) lookup
     const eventRegsMap = new Map();
     regs.forEach(r => {
@@ -113,17 +101,12 @@ router.get('/events', authMiddleware, async (req, res) => {
 
     const data = events.map(ev => {
       const evRegs = eventRegsMap.get(ev.eventId) || [];
-=======
-    const data = events.map(ev => {
-      const evRegs = regs.filter(r => r.eventId === ev.eventId);
->>>>>>> d5586702609478d91f799e3d928811350adb99b4
       const volunteers = evRegs.filter(r => r.type === 'volunteer' && r.status !== 'cancelled');
       const participants = evRegs.filter(r => r.type === 'participant' && r.status !== 'cancelled');
       const checkedIn = evRegs.filter(r => r.checkedIn).length;
       const noShows = evRegs.filter(r => r.noShow).length;
       const cancelled = evRegs.filter(r => r.status === 'cancelled').length;
       let slots = 0, filled = 0;
-<<<<<<< HEAD
       
       const vByRole = new Map();
       volunteers.forEach(v => {
@@ -133,11 +116,6 @@ router.get('/events', authMiddleware, async (req, res) => {
       (ev.volunteerRoles || []).forEach(role => {
         slots += role.slots;
         filled += Math.min(vByRole.get(role.id) || 0, role.slots);
-=======
-      (ev.volunteerRoles || []).forEach(role => {
-        slots += role.slots;
-        filled += Math.min(volunteers.filter(r => r.roleId === role.id).length, role.slots);
->>>>>>> d5586702609478d91f799e3d928811350adb99b4
       });
       return {
         eventId: ev.eventId, title: ev.title, date: ev.date, category: ev.category,

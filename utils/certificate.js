@@ -32,7 +32,6 @@ function generateCertificatePDF(data) {
     });
     doc.on('error', reject);
 
-<<<<<<< HEAD
     // --- Colors & Constants ---
     const navy = '#1a2d6b';
     const gold = '#d4af37';
@@ -101,72 +100,12 @@ function generateCertificatePDF(data) {
     doc.restore();
 
     // --- Logos ---
-=======
-    // --- Background/Border ---
-    doc.rect(0, 0, doc.page.width, doc.page.height).fill('#f5f0e8');
-    
-    // Outer Border
-    doc.rect(40, 40, doc.page.width - 80, doc.page.height - 80)
-       .lineWidth(3)
-       .stroke('#2c3e7a');
-    
-    // Inner Border
-    doc.rect(50, 50, doc.page.width - 100, doc.page.height - 100)
-       .lineWidth(1)
-       .stroke('#b8a060');
-
-    // --- Content ---
-    const centerX = doc.page.width / 2;
-
-    // College Header (Lowered and expanded to 3 lines)
-    const headerStartY = 55;
-
-    // B.V.V. Sangha's - Brown and Bold
-    doc.fillColor('#6e2c00') 
-       .font('Helvetica-Bold')
-       .fontSize(14)
-       .text("B. V. V. Sangha's", 0, headerStartY, { align: 'center' });
-    
-    // Institute Name - Red and Bold
-    doc.fillColor('#b71c1c')
-       .font('Helvetica-Bold')
-       .fontSize(20)
-       .text('BILURU GURUBASAVA MAHASWAMIJI INSTITUTE', 0, headerStartY + 25, { align: 'center' });
-
-    // Technology + Location - Red and Bold
-    doc.fontSize(20)
-       .text('OF TECHNOLOGY, MUDHOL-587313', 0, headerStartY + 52, { align: 'center' });
-
-    // Affiliation Line
-    doc.fillColor('#000000')
-       .font('Helvetica')
-       .fontSize(11)
-       .text('Affiliated to Visvesvaraya Technological University, Belagavi', 0, headerStartY + 82, { align: 'center' });
-
-    // Organization Name (Shifted Down)
-    doc.font('Helvetica')
-       .fillColor('#b8a060')
-       .fontSize(10)
-       .text('EVENTVAULT', 0, headerStartY + 110, { align: 'center', characterSpacing: 4 });
-
-    // Certificate Title (Shifted Down)
-    let certType = 'Participation';
-    if (data.type === 'volunteer') certType = 'Volunteering';
-    if (data.type === 'achievement') certType = 'Achievement';
-
-    doc.fillColor('#2c3e7a')
-       .fontSize(14)
-       .text(`CERTIFICATE OF ${certType.toUpperCase()}`, 0, headerStartY + 130, { align: 'center', characterSpacing: 2 });
-
-    // Logos 
->>>>>>> d5586702609478d91f799e3d928811350adb99b4
     const logo1Path = path.join(__dirname, '..', 'logo_right_new.jpg');
     const logo2Path = path.join(__dirname, '..', 'logo1.png');
     const stickerLeftPath = path.join(__dirname, '..', 'sticker_left.png');
     const stickerRightPath = path.join(__dirname, '..', 'sticker_right.png');
 
     if (fs.existsSync(logo2Path)) {
-<<<<<<< HEAD
         doc.image(logo2Path, 65, 55, { width: 70 });
     }
     if (fs.existsSync(stickerRightPath)) {
@@ -193,87 +132,10 @@ function generateCertificatePDF(data) {
        .stroke(navy);
 
     // Body Text
-=======
-        doc.image(logo2Path, 60, 60, { width: 70 });
-    }
-
-    if (fs.existsSync(stickerLeftPath)) {
-        doc.image(stickerLeftPath, 60, 60, { width: 80 });
-    }
-
-    if (fs.existsSync(stickerRightPath)) {
-        doc.image(stickerRightPath, doc.page.width - 140, 60, { width: 80 });
-    } else if (fs.existsSync(logo1Path)) {
-        doc.image(logo1Path, doc.page.width - 140, 60, { width: 80 });
-    }
-    
-    // --- USER PHOTO ---
-    const maxPhotoWidth = 105;
-    const maxPhotoHeight = 135;
-    const photoY = headerStartY + 160; 
-
-    if (data.photo) {
-      try {
-        let photoInput = data.photo;
-        if (typeof data.photo === 'string' && data.photo.startsWith('data:image/')) {
-          const base64Data = data.photo.split(';base64,').pop();
-          photoInput = Buffer.from(base64Data, 'base64');
-        }
-        
-        // Open the image to get its actual dimensions
-        const img = doc.openImage(photoInput);
-        const scale = Math.min(maxPhotoWidth / img.width, maxPhotoHeight / img.height);
-        const actualWidth = img.width * scale;
-        const actualHeight = img.height * scale;
-        const actualX = (doc.page.width - actualWidth) / 2;
-
-        // Draw frame around the actual photo dimensions
-        doc.rect(actualX - 4, photoY - 4, actualWidth + 8, actualHeight + 8)
-           .lineWidth(1.5)
-           .stroke('#b8a060');
-
-        doc.image(photoInput, actualX, photoY, { width: actualWidth, height: actualHeight });
-      } catch (e) {
-        console.error('Failed to embed photo in PDF:', e.message);
-      }
-    }
-    
-    // Adjust next content start position based on max possible height
-    const startContentY = photoY + maxPhotoHeight + 15; 
-
-    // Subtitle
-    doc.fillColor('#999999')
-       .font('Helvetica')
-       .fontSize(12)
-       .text(data.type === 'achievement' ? 'Awarded to' : '', 0, startContentY, { align: 'center' });
-
-    // Person Name
-    doc.fillColor('#1a2050')
-       .fontSize(36)
-       .text(data.name, 0, startContentY + 10, { align: 'center' });
-
-    // USN / Branch Info
-    if (data.usn || data.roleName) {
-      let infoText = '';
-      if (data.usn) infoText += `USN: ${data.usn}`;
-      if (data.roleName && data.type === 'achievement') {
-        infoText += (infoText ? '  |  ' : '') + data.roleName;
-      }
-      
-      if (infoText) {
-        doc.fillColor('#444444')
-           .fontSize(14)
-           .text(infoText, 0, startContentY + 50, { align: 'center' });
-      }
-    }
-
-    // Body text
->>>>>>> d5586702609478d91f799e3d928811350adb99b4
     let actionText = '';
     if (data.type === 'volunteer') {
       actionText = `has successfully volunteered as ${data.roleName || 'Volunteer'}`;
     } else if (data.type === 'achievement') {
-<<<<<<< HEAD
       actionText = `has outstandingly achieved in the event`;
     } else {
       actionText = `has actively participated in the`;
@@ -337,36 +199,6 @@ function generateCertificatePDF(data) {
        .text('Certificate ID:', doc.page.width - 180, footerY + 60, { align: 'right', width: 110 })
        .font('Helvetica-Bold')
        .text(certId, doc.page.width - 180, footerY + 70, { align: 'right', width: 110 });
-=======
-      actionText = 'for outstanding performance and achievement in';
-    } else {
-      actionText = 'has successfully participated';
-    }
-    
-    doc.fillColor('#444444')
-       .fontSize(14)
-       .text(actionText, 0, startContentY + 75, { align: 'center' })
-       .text(data.type === 'achievement' ? '' : 'at', { align: 'center' });
-
-    // Event Title / Category
-    doc.fillColor('#2c3e7a')
-       .fontSize(22)
-       .text(data.eventTitle, 0, startContentY + 110, { align: 'center', oblique: true });
-
-    // Date / Academic Year
-    doc.fillColor('#888888')
-       .fontSize(11)
-       .text(`${data.type === 'achievement' ? 'Year' : 'on'} ${data.eventDate}`, 0, startContentY + 140, { align: 'center' });
-
-    // --- Signatures & Seal ---
-    const sigY = 510;
-    doc.moveTo(100, sigY).lineTo(260, sigY).lineWidth(1).stroke('#333333');
-    doc.fillColor('#666666').fontSize(12).text('Event Organizer', 100, sigY + 10, { width: 160, align: 'center' });
-
-    const today = new Date().toLocaleDateString('en-IN');
-    doc.moveTo(doc.page.width - 260, sigY).lineTo(doc.page.width - 100, sigY).lineWidth(1).stroke('#333333');
-    doc.fillColor('#666666').fontSize(12).text(`Date: ${today}`, doc.page.width - 260, sigY + 10, { width: 160, align: 'center' });
->>>>>>> d5586702609478d91f799e3d928811350adb99b4
 
     doc.end();
   });
