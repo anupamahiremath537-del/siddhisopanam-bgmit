@@ -9,13 +9,9 @@ module.exports = {
     const BREVO_API_KEY = (process.env.BREVO_API_KEY || '').trim();
     
     if (!BREVO_API_KEY) {
-      console.error('[Email ERROR] BREVO_API_KEY is not configured in Environment Variables!');
-      return { error: 'Brevo API key missing. Please configure BREVO_API_KEY.' };
+      console.error('[Email ERROR] BREVO_API_KEY is not configured!');
+      return { error: 'Brevo API key missing.' };
     }
-
-    // Safe Debugging: Check if the key looks correct (Length and prefix)
-    const keyHint = `${BREVO_API_KEY.substring(0, 4)}...${BREVO_API_KEY.substring(BREVO_API_KEY.length - 4)}`;
-    console.log(`[Email Debug] Key Check: Length=${BREVO_API_KEY.length}, Hint=${keyHint}`);
 
     try {
       const formattedAttachments = attachments.map(a => ({
@@ -27,7 +23,7 @@ module.exports = {
       const senderEmail = process.env.EMAIL_FROM || process.env.EMAIL_USER || 'bgmitcs034@gmail.com';
       const senderName = process.env.EMAIL_FROM_NAME || 'BGMIT EventVault';
 
-      console.log(`[Email Debug] Sending to: ${to} | Subject: ${subject} | via Brevo API`);
+      console.log(`[Email] Sending to: ${to} | Subject: ${subject}`);
 
       const response = await fetch('https://api.brevo.com/v3/smtp/email', {
         method: 'POST',

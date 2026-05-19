@@ -87,7 +87,7 @@ router.post('/send', authMiddleware, adminOnly, async (req, res) => {
 
     // Background process
     (async () => {
-      console.log(`[Manual Cert Broadcast] Background process started for ${certs.length} users.`);
+      console.log(`[Cert Broadcast] Background process started for ${certs.length} users.`);
       let successCount = 0;
       let failCount = 0;
 
@@ -109,68 +109,47 @@ router.post('/send', authMiddleware, adminOnly, async (req, res) => {
             photo: cert.photo // In case manual certs also have photos
           };
 
-          console.log(`[Manual Cert] Generating PDF for ${cert.name} (${cert.email})...`);
+          console.log(`[Cert] Generating PDF for ${cert.name} (${cert.email})...`);
           const certBuffer = await certUtil.generateCertificatePDF(pdfData);
 
           if (!certBuffer || certBuffer.length === 0) {
             throw new Error('Generated certificate buffer is empty');
           }
-          console.log(`[Manual Cert] PDF generated (${certBuffer.length} bytes)`);
+          console.log(`[Cert] PDF generated (${certBuffer.length} bytes)`);
 
           const filename = `Certificate_${cert.name.replace(/\s+/g, '_')}.pdf`;
 
-          console.log(`[Manual Cert] Attempting to send email to ${cert.email}...`);
+          console.log(`[Cert] Attempting to send email to ${cert.email}...`);
           
           const subject = `Academic/Event Certificate - ${cert.category}`;
           const text = `Dear ${cert.name},\n\nPlease find attached your certificate for "${cert.category}" (${cert.academicYear}).\n\nCongratulations on your achievement!\n\nBest regards,\nBGMIT EventVault Team`;
           
-          const html = `
-            <div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #eee; border-radius: 12px;">
-              <div style="text-align: center; margin-bottom: 20px;">
-                <h2 style="color: #1a2d6b; margin: 0;">Academic Certificate</h2>
-                <p style="color: #64748b; font-size: 14px;">BGMIT EventVault Team</p>
-              </div>
-              <div style="background: #f8fafc; padding: 25px; border-radius: 8px; line-height: 1.6; color: #1e293b; font-size: 16px;">
-                <p>Dear <strong>${cert.name}</strong>,</p>
-                <p>Congratulations! Please find attached your digital certificate for <strong>"${cert.category}"</strong> (${cert.academicYear}).</p>
-                ${cert.achievement ? `<p><strong>Achievement:</strong> ${cert.achievement}</p>` : ''}
-                ${cert.place ? `<p><strong>Place Secured:</strong> ${cert.place}</p>` : ''}
-                <p style="margin-top: 20px;">We applaud your hard work and dedication. Keep shining!</p>
-              </div>
-              <div style="margin-top: 25px; text-align: center;">
-                <p style="font-size: 14px; color: #64748b;">Best regards,<br><strong>BGMIT EventVault Team</strong></p>
-                <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
-                <p style="font-size: 11px; color: #94a3b8;">This is an automated message from BGMIT EventVault. Your certificate is attached as a PDF file.</p>
-              </div>
-            </div>
-          `;
-
           const emailRes = await emailUtil.sendEmail(
             cert.email,
             subject,
             text,
-            html,
+            null,
             [{ filename, content: certBuffer }]
           );
 
           if (emailRes && emailRes.success) {
             // Update status only if email sent successfully
             await db.update('manual_certificates', { _id: cert._id }, { $set: { status: 'sent', sentAt: new Date() } });
-            console.log(`[Manual Cert] Successfully sent and updated status for ${cert.name}`);
+            console.log(`[Cert] Successfully sent and updated status for ${cert.name}`);
             successCount++;
           } else {
-            console.error(`[Manual Cert ERROR] Failed to send email to ${cert.email}: ${emailRes.error || 'Unknown error'}`);
+            console.error(`[Cert ERROR] Failed to send email to ${cert.email}: ${emailRes.error || 'Unknown error'}`);
             failCount++;
           }
 
           // Delay to avoid rate limits
           await new Promise(resolve => setTimeout(resolve, 1000));
         } catch (innerErr) {
-          console.error(`[Manual Cert ERROR] Unexpected error for ${cert.email || 'unknown'}:`, innerErr.stack || innerErr.message);
+          console.error(`[Cert ERROR] Unexpected error for ${cert.email || 'unknown'}:`, innerErr.stack || innerErr.message);
           failCount++;
         }
       }
-      console.log(`[Manual Cert Broadcast] Completed. Success: ${successCount}, Failures: ${failCount}`);
+      console.log(`[Cert Broadcast] Completed. Success: ${successCount}, Failures: ${failCount}`);
     })();
 
   } catch (err) {
