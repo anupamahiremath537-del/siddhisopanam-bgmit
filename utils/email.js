@@ -19,8 +19,9 @@ module.exports = {
         content: Buffer.isBuffer(a.content) ? a.content.toString('base64') : Buffer.from(a.content).toString('base64')
       }));
 
-      // Priority: EMAIL_FROM > EMAIL_USER > Default
-      const senderEmail = process.env.EMAIL_FROM || process.env.EMAIL_USER || 'bgmitcs034@gmail.com';
+      // Priority: EMAIL_FROM > EMAIL_USER > Default verified Brevo subdomain
+      // Based on your Brevo stats, 'bgmitcs034@10956806.brevosend.com' is your verified working sender.
+      const senderEmail = process.env.EMAIL_FROM || process.env.EMAIL_USER || 'bgmitcs034@10956806.brevosend.com';
       const senderName = process.env.EMAIL_FROM_NAME || 'BGMIT EventVault';
 
       console.log(`[Email] From: ${senderEmail} | To: ${to} | Subject: ${subject}`);
