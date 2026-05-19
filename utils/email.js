@@ -1,11 +1,16 @@
 // utils/email.js - Brevo API (HTTP-based) to bypass Render's SMTP block
-const BREVO_API_KEY = process.env.BREVO_API_KEY;
+const fetch = global.fetch || require('node-fetch');
 
 module.exports = {
-  async sendEmail(to, subject, text, html, attachments = []) {
+  /**
+   * Send a single transactional email via Brevo API
+   */
+  async sendEmail(to, subject, text, html = null, attachments = []) {
+    const BREVO_API_KEY = process.env.BREVO_API_KEY;
+    
     if (!BREVO_API_KEY) {
-      console.error('[Email ERROR] BREVO_API_KEY is not configured!');
-      return { error: 'Brevo API key missing. Add BREVO_API_KEY to your Render Environment Variables.' };
+      console.error('[Email ERROR] BREVO_API_KEY is not configured in Environment Variables!');
+      return { error: 'Brevo API key missing. Please configure BREVO_API_KEY.' };
     }
 
     try {
@@ -14,8 +19,11 @@ module.exports = {
         content: Buffer.isBuffer(a.content) ? a.content.toString('base64') : Buffer.from(a.content).toString('base64')
       }));
 
-      const senderEmail = process.env.EMAIL_USER || 'bgmitcs034@gmail.com';
-      console.log(`[Email Debug] Attempting send to ${to} from ${senderEmail}...`);
+      // Priority: EMAIL_FROM > EMAIL_USER > Default
+      const senderEmail = process.env.EMAIL_FROM || process.env.EMAIL_USER || 'bgmitcs034@gmail.com';
+      const senderName = process.env.EMAIL_FROM_NAME || 'BGMIT EventVault';
+
+      console.log(`[Email Debug] Sending to: ${to} | Subject: ${subject} | via Brevo API`);
 
       const response = await fetch('https://api.brevo.com/v3/smtp/email', {
         method: 'POST',
@@ -26,7 +34,7 @@ module.exports = {
         },
         body: JSON.stringify({
           sender: { 
-            name: process.env.EMAIL_FROM_NAME || 'EventVault', 
+            name: senderName, 
             email: senderEmail
           },
           to: [{ email: to }],
@@ -40,11 +48,11 @@ module.exports = {
       const data = await response.json();
 
       if (response.ok) {
-        console.log(`[Email SUCCESS] To: ${to}, MessageID: ${data.messageId}`);
+        console.log(`[Email SUCCESS] To: ${to}, MessageID: ${data.messageId || 'Success'}`);
         return { success: true, messageId: data.messageId };
       } else {
         console.error('[Email ERROR - Brevo Rejected]', { status: response.status, data });
-        return { error: data.message || 'Brevo API Error' };
+        return { error: data.message || data.code || 'Brevo API Error' };
       }
     } catch (err) {
       console.error(`[Email FATAL ERROR] To: ${to}, Details: ${err.message}`);
@@ -52,6 +60,9 @@ module.exports = {
     }
   },
 
+  /**
+   * Send multiple emails in a loop (individualized)
+   */
   async sendBroadcast(emails, subject, message, html = null, attachments = []) {
     const results = { success: 0, failure: 0 };
     const uniqueEmails = [...new Set(emails.filter(e => !!e))];
@@ -63,7 +74,8 @@ module.exports = {
       if (res.success) results.success++;
       else results.failure++;
       
-      await new Promise(r => setTimeout(r, 100));
+      // Small delay between requests to avoid burst rate limits
+      await new Promise(r => setTimeout(r, 150));
     }
     
     return results;

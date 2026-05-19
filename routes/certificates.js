@@ -120,11 +120,36 @@ router.post('/send', authMiddleware, adminOnly, async (req, res) => {
           const filename = `Certificate_${cert.name.replace(/\s+/g, '_')}.pdf`;
 
           console.log(`[Manual Cert] Attempting to send email to ${cert.email}...`);
+          
+          const subject = `Academic/Event Certificate - ${cert.category}`;
+          const text = `Dear ${cert.name},\n\nPlease find attached your certificate for "${cert.category}" (${cert.academicYear}).\n\nCongratulations on your achievement!\n\nBest regards,\nBGMIT EventVault Team`;
+          
+          const html = `
+            <div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #eee; border-radius: 12px;">
+              <div style="text-align: center; margin-bottom: 20px;">
+                <h2 style="color: #1a2d6b; margin: 0;">Academic Certificate</h2>
+                <p style="color: #64748b; font-size: 14px;">BGMIT EventVault Team</p>
+              </div>
+              <div style="background: #f8fafc; padding: 25px; border-radius: 8px; line-height: 1.6; color: #1e293b; font-size: 16px;">
+                <p>Dear <strong>${cert.name}</strong>,</p>
+                <p>Congratulations! Please find attached your digital certificate for <strong>"${cert.category}"</strong> (${cert.academicYear}).</p>
+                ${cert.achievement ? `<p><strong>Achievement:</strong> ${cert.achievement}</p>` : ''}
+                ${cert.place ? `<p><strong>Place Secured:</strong> ${cert.place}</p>` : ''}
+                <p style="margin-top: 20px;">We applaud your hard work and dedication. Keep shining!</p>
+              </div>
+              <div style="margin-top: 25px; text-align: center;">
+                <p style="font-size: 14px; color: #64748b;">Best regards,<br><strong>BGMIT EventVault Team</strong></p>
+                <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
+                <p style="font-size: 11px; color: #94a3b8;">This is an automated message from BGMIT EventVault. Your certificate is attached as a PDF file.</p>
+              </div>
+            </div>
+          `;
+
           const emailRes = await emailUtil.sendEmail(
             cert.email,
-            `Academic/Event Certificate - ${cert.category}`,
-            `Dear ${cert.name},\n\nPlease find attached your certificate for "${cert.category}" (${cert.academicYear}).\n\nCongratulations on your achievement!\n\nBest regards,\nBGMIT EventVault Team`,
-            null,
+            subject,
+            text,
+            html,
             [{ filename, content: certBuffer }]
           );
 
