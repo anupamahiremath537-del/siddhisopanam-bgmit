@@ -12,7 +12,6 @@ const supabaseAuthRoutes = require('./routes/supabase-auth');
 const eventRoutes = require('./routes/events');
 const registrationRoutes = require('./routes/registrations');
 const analyticsRoutes = require('./routes/analytics');
-const certificateRoutes = require('./routes/certificates');
 const chatRoutes = require('./routes/chat');
 
 const reminderService = require('./utils/reminders');
@@ -33,7 +32,6 @@ app.use('/api/supabase-auth', supabaseAuthRoutes);
 app.use('/api/events', eventRoutes);
 app.use('/api/registrations', registrationRoutes);
 app.use('/api/analytics', analyticsRoutes);
-app.use('/api/certificates', certificateRoutes);
 app.use('/api/chat', chatRoutes);
 
 // Version and Stats API
