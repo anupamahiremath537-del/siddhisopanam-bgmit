@@ -657,6 +657,7 @@ input[type="time"]::-webkit-calendar-picker-indicator {
     <div id="admin-nav" style="display:none">
       <div class="nav-section">Admin</div>
       <button class="nav-item" onclick="showPage('organizers')"><span class="nav-icon">👥</span> Organizers</button>
+      <button class="nav-item" onclick="showPage('certificates')"><span class="nav-icon">🎓</span> Certificates</button>
     </div>
     
     <div class="sidebar-bottom">
@@ -886,11 +887,8 @@ input[type="time"]::-webkit-calendar-picker-indicator {
           <label>Message Content</label>
           <textarea id="broadcast-message" rows="6" class="search-input" style="width:100%;resize:vertical" placeholder="Write your message here..."></textarea>
         </div>
-        <button class="btn btn-primary btn-full" onclick="sendBroadcast()" style="margin-bottom:10px">
+        <button class="btn btn-primary btn-full" onclick="sendBroadcast()">
             <span id="broadcast-btn-text">🚀 Send Broadcast</span>
-        </button>
-        <button class="btn btn-outline btn-full" onclick="sendTestEmail()">
-            <span id="test-email-btn-text">🧪 Send Test Email to Me</span>
         </button>
       </div>
     </div>
@@ -905,6 +903,50 @@ input[type="time"]::-webkit-calendar-picker-indicator {
         <table>
           <thead><tr><th>Name</th><th>Email / Username</th><th>Status</th><th>Actions</th></tr></thead>
           <tbody id="org-table-body"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- CERTIFICATES PAGE (Admin Only) -->
+    <div id="page-certificates" class="page">
+      <div class="page-header">
+        <div class="page-title">Manual <em>Certificates</em></div>
+        <div style="display:flex; gap:12px;">
+          <button class="btn btn-primary" onclick="openCertModal()">+ Add Student</button>
+          <button class="btn btn-success" onclick="sendAllCertificates()">🚀 Send All Pending</button>
+        </div>
+      </div>
+      
+      <div class="search-bar" style="flex-wrap:wrap">
+        <input class="search-input" type="text" placeholder="Search students..." id="cert-search" oninput="renderCerts()" style="min-width:200px">
+        <select id="cert-cat-filter" class="search-input" style="width:160px" onchange="renderCerts()">
+          <option value="">All Categories</option>
+          <option>Academics – Toppers</option>
+          <option>Event Winners</option>
+        </select>
+        <select id="cert-status-filter" class="search-input" style="width:160px" onchange="renderCerts()">
+          <option value="">All Status</option>
+          <option value="pending">Pending</option>
+          <option value="sent">Sent</option>
+        </select>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th style="width: 50px;">SI No</th>
+              <th>Name</th>
+              <th>Email</th>
+
+              <th>Branch/Sem</th>
+              <th>Achievement</th>
+              <th>Year</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="cert-table-body"></tbody>
         </table>
       </div>
     </div>
@@ -1033,6 +1075,49 @@ input[type="time"]::-webkit-calendar-picker-indicator {
         <button class="btn btn-outline" onclick="closeResultModal()">Cancel</button>
         <button class="btn btn-primary" onclick="saveResults()"><span id="result-save-btn-text">Save Results</span></button>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- MANUAL CERTIFICATE MODAL -->
+<div class="modal-overlay" id="cert-modal">
+  <div class="modal">
+    <div class="modal-head">
+      <h2 id="cert-modal-title">Add Student Entry</h2>
+      <button class="modal-close" onclick="closeCertModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <form id="cert-form" onsubmit="saveManualCert(event)">
+        <input type="hidden" id="edit-cert-id">
+        <div class="form-row">
+          <div class="form-group"><label>Full Name (Enter the name exactly as it should appear on the certificate) *</label><input type="text" id="cert-name" required placeholder="Student's Full Name"></div>
+          <div class="form-group"><label>Email ID *</label><input type="email" id="cert-email" required placeholder="student@example.com"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>Branch</label><input type="text" id="cert-branch" placeholder="e.g. CSE, ECE"></div>
+          <div class="form-group"><label>Semester</label><input type="text" id="cert-semester" placeholder="e.g. 6th, 8th"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Achievement Category *</label>
+            <select id="cert-category" required>
+              <option value="" disabled selected>Select Category</option>
+              <option>Academics – Toppers</option>
+              <option>Event Winners</option>
+              <option>Sports Achievement</option>
+              <option>Special Recognition</option>
+            </select>
+          </div>
+          <div class="form-group"><label>Place (Optional)</label><input type="text" id="cert-place" placeholder="e.g. 1st, 2nd, 3rd"></div>
+        </div>
+        <div class="form-group"><label>Achievement Description / Event Name *</label><input type="text" id="cert-achievement" required placeholder="e.g. Topper in Machine Learning, Winner in Hackathon"></div>
+        <div class="form-group"><label>Academic Year *</label><input type="text" id="cert-year" required placeholder="e.g. 2024-25"></div>
+        
+        <div style="display:flex; gap:12px; margin-top:20px">
+          <button type="submit" class="btn btn-primary" style="flex:1">Save Entry</button>
+          <button type="button" class="btn btn-outline" onclick="closeCertModal()" style="flex:1">Cancel</button>
+        </div>
+      </form>
     </div>
   </div>
 </div>
@@ -1400,6 +1485,7 @@ function showPage(name) {
   if (name === 'results') loadResultsEvents();
   if (name === 'broadcast') loadBroadcastEvents();
   if (name === 'organizers') loadOrganizers();
+  if (name === 'certificates') loadManualCertificates();
 }
 
 // ─── API HELPERS ─────────────────────────────────────────
@@ -2299,39 +2385,24 @@ async function sendBroadcast() {
 
   if (!msg) { toast('Please enter a message', 'error'); return; }
   if (methods.length === 0) { toast('Please select at least one method (Email)', 'error'); return; }
-
+  
   let targetDesc = "selected users";
   if (!confirm(`Send this message via ${methods.join(' & ')} to ${targetDesc}?`)) return;
-
+  
   const btn = document.getElementById('broadcast-btn-text');
   btn.innerHTML = '<span class="spinner"></span> Sending...';
   try {
-    const res = await post('/registrations/broadcast', {
+    const res = await post('/registrations/broadcast', { 
       message: msg, eventId, type, teamName, methods,
       organizer, category
     });
     toast('Broadcast initiated successfully! Check server logs for progress.', 'success');
     document.getElementById('broadcast-message').value = '';
-  } catch(e) {
+  } catch(e) { 
     console.error('Broadcast failed:', e);
-    toast(e.message, 'error');
+    toast(e.message, 'error'); 
   }
   btn.textContent = '🚀 Send Broadcast';
-}
-
-async function sendTestEmail() {
-  const btn = document.getElementById('test-email-btn-text');
-  const oldText = btn.textContent;
-  btn.innerHTML = '<span class="spinner"></span> Testing...';
-
-  try {
-    const res = await post('/auth/send-test-email', {});
-    toast('Test email sent successfully! Please check your inbox.', 'success');
-  } catch(e) {
-    console.error('Test email failed:', e);
-    toast(e.message || 'Test email failed. Check server logs.', 'error');
-  }
-  btn.textContent = oldText;
 }
 
 // ─── CERTIFICATE ──────────────────────────────────────────
