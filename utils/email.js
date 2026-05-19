@@ -23,7 +23,7 @@ module.exports = {
       const senderEmail = process.env.EMAIL_FROM || process.env.EMAIL_USER || 'bgmitcs034@gmail.com';
       const senderName = process.env.EMAIL_FROM_NAME || 'BGMIT EventVault';
 
-      console.log(`[Email] From: ${senderEmail} | To: ${to} | Subject: ${subject}`);
+      console.log(`[Email] Sending to: ${to} | Subject: ${subject}`);
 
       const response = await fetch('https://api.brevo.com/v3/smtp/email', {
         method: 'POST',
