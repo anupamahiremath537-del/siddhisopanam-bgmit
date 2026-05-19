@@ -6,12 +6,16 @@ module.exports = {
    * Send a single transactional email via Brevo API
    */
   async sendEmail(to, subject, text, html = null, attachments = []) {
-    const BREVO_API_KEY = process.env.BREVO_API_KEY;
+    const BREVO_API_KEY = (process.env.BREVO_API_KEY || '').trim();
     
     if (!BREVO_API_KEY) {
       console.error('[Email ERROR] BREVO_API_KEY is not configured in Environment Variables!');
       return { error: 'Brevo API key missing. Please configure BREVO_API_KEY.' };
     }
+
+    // Safe Debugging: Check if the key looks correct (Length and prefix)
+    const keyHint = `${BREVO_API_KEY.substring(0, 4)}...${BREVO_API_KEY.substring(BREVO_API_KEY.length - 4)}`;
+    console.log(`[Email Debug] Key Check: Length=${BREVO_API_KEY.length}, Hint=${keyHint}`);
 
     try {
       const formattedAttachments = attachments.map(a => ({
